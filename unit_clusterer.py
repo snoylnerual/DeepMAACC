@@ -3,7 +3,7 @@ from keras.layers import Dense, Conv2D
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.preprocessing import MinMaxScaler
 
-from util import model_ok, is_softmax_classifier
+from utils import model_ok, is_softmax_classifier
 
 
 def make_axes(w):
@@ -24,7 +24,8 @@ class UnitClustering:
         clusters = []
         for layer_index in range(len(self._model.layers) - 1):  # exclude last layer
             layer = self._model.layers[layer_index]
-
+            num_of_neurons = layer.output.shape[-1]  # added this and next line
+            n_clusters = -(num_of_neurons // -cluster_sz)  # ceiling division
             if not isinstance(layer, Dense) and not isinstance(layer, Conv2D):
                 continue
 
@@ -43,7 +44,7 @@ class UnitClustering:
             elif len(points) < cluster_sz:
                 print('Warning: more groups than there are points. Try reducing G.')
 
-            clustering = AgglomerativeClustering(n_clusters=min(cluster_sz, len(points))).fit_predict(points)
+            clustering = AgglomerativeClustering(n_clusters=min(n_clusters, len(points))).fit_predict(points)
 
             cluster_index_map = dict()
             for unit_index in range(len(points)):
