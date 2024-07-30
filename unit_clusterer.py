@@ -18,14 +18,13 @@ class UnitClustering:
             raise ValueError('A classifier with softmax output is expected')
         self._model = model
 
-    def get_clusters(self, cluster_sz, one_unit_per_cluster=False):
-        if cluster_sz <= 0 and not one_unit_per_cluster:
-            raise ValueError('Number of groups must be positive')
+    def get_clusters(self, cluster_sz):
+        if cluster_sz <= 0:
+            raise ValueError('Cluster size must be a positive number')
         clusters = []
         for layer_index in range(len(self._model.layers) - 1):  # exclude last layer
             layer = self._model.layers[layer_index]
-            num_of_neurons = layer.output.shape[-1]  # added this and next line
-            n_clusters = -(num_of_neurons // -cluster_sz)  # ceiling division
+
             if not isinstance(layer, Dense) and not isinstance(layer, Conv2D):
                 continue
 
@@ -39,13 +38,9 @@ class UnitClustering:
             points = points.reshape((points.shape[0], -1))
             points = (MinMaxScaler()).fit_transform(points)
 
-            if one_unit_per_cluster:
-                cluster_sz = w[0].shape[-1]  # number of units in the layer
-            elif len(points) < cluster_sz:
-                print('Warning: more groups than there are points. Try reducing G.')
-
-            clustering = AgglomerativeClustering(n_clusters=min(n_clusters, len(points))).fit_predict(points)
-
+            num_units = w[0].shape[-1]
+            num_clusters = int(np.ceil(float(num_units) / float(cluster_sz)))
+            clustering = AgglomerativeClustering(n_clusters=num_clusters).fit_predict(points)
             cluster_index_map = dict()
             for unit_index in range(len(points)):
                 cluster = clustering[unit_index]  # what is the cluster index of the jth neuron
@@ -55,6 +50,45 @@ class UnitClustering:
             for (_, unit_indices) in cluster_index_map.items():
                 clusters.append(MutableUnitCluster(self._model, layer_index, unit_indices))
         return clusters
+
+
+# def get_clusters(self, cluster_sz, one_unit_per_cluster=False):
+#         if cluster_sz <= 0 and not one_unit_per_cluster:
+#             raise ValueError('Number of groups must be positive')
+#         clusters = []
+#         for layer_index in range(len(self._model.layers) - 1):  # exclude last layer
+#             layer = self._model.layers[layer_index]
+#             num_of_neurons = layer.output.shape[-1]  # added this and next line
+#             n_clusters = -(num_of_neurons // -cluster_sz)  # ceiling division
+#             if not isinstance(layer, Dense) and not isinstance(layer, Conv2D):
+#                 continue
+#
+#             w = layer.get_weights()
+#             a = w[0]
+#             b = w[1]
+#             b_expanded = np.expand_dims(b, axis=make_axes(a))
+#             b_tiled = np.tile(b_expanded, reps=(*a.shape[:-2], 1, 1))
+#             points = np.concatenate((a, b_tiled), axis=-2)
+#             points = points.transpose()
+#             points = points.reshape((points.shape[0], -1))
+#             points = (MinMaxScaler()).fit_transform(points)
+#
+#             if one_unit_per_cluster:
+#                 cluster_sz = w[0].shape[-1]  # number of units in the layer
+#             elif len(points) < cluster_sz:
+#                 print('Warning: more groups than there are points. Try reducing G.')
+#
+#             clustering = AgglomerativeClustering(n_clusters=min(n_clusters, len(points))).fit_predict(points)
+#
+#             cluster_index_map = dict()
+#             for unit_index in range(len(points)):
+#                 cluster = clustering[unit_index]  # what is the cluster index of the jth neuron
+#                 if cluster not in cluster_index_map:
+#                     cluster_index_map[cluster] = []
+#                 cluster_index_map[cluster].append(unit_index)
+#             for (_, unit_indices) in cluster_index_map.items():
+#                 clusters.append(MutableUnitCluster(self._model, layer_index, unit_indices))
+#         return clusters
 
 
 class MutableUnitCluster:
