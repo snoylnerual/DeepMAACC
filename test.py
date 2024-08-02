@@ -4,6 +4,8 @@ from keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
 
+print([n/2 for n in range(5, 16)])
+
 train_data = sio.loadmat('examples/svhn/data/train_32x32.mat')
 test_data = sio.loadmat('examples/svhn/data/test_32x32.mat')
 x_train = train_data['X']

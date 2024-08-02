@@ -16,12 +16,16 @@ class MutationScore:
         self._mutation_score = None
         self._clusters = None
         self._cluster_mutation_score = None
+        self._cluster_amount = None
 
     def get_mutation_score(self):
         return self._mutation_score
 
     def get_cluster_mutation_score(self):
         return self._cluster_mutation_score
+
+    def get_cluster_amount(self):
+        return self._cluster_amount
 
     def set_clusters(self, clusters):
         self._clusters = clusters
@@ -50,7 +54,7 @@ class MutationScore:
             for i, predicted_label in enumerate(predictions):
                 if np.argmax(self._correct_test_points[1][i]) != np.argmax(predicted_label):
                     classes_list[np.argmax(predicted_label)] *= 0
-                    print("Class killed - " + str(np.argmax(predicted_label)))
+                    #print("Class killed - " + str(np.argmax(predicted_label)))
             sum += self._num_of_classes - np.sum(classes_list)
             classes_list = [1] * self._num_of_classes
         return sum
@@ -66,11 +70,13 @@ class MutationScore:
                 for i, predicted_label in enumerate(predictions):
                     if np.argmax(self._correct_test_points[1][i]) != np.argmax(predicted_label):
                         classes_list[np.argmax(predicted_label)] *= 0
-                        print("Class killed - " + str(np.argmax(predicted_label)))
+                        #print("Class killed - " + str(np.argmax(predicted_label)))
                 sum += self._num_of_classes - np.sum(classes_list)
                 kc_list += [[sum, len(clust)]]
                 classes_list = [1] * self._num_of_classes
         return kc_list
+
+    #single score, all score,
 
     def run(self):
         x, y = self.get_correct_test_points()
@@ -98,6 +104,7 @@ class MutationScore:
             cluster_amount += 1
 
         self._mutation_score = mutation_score_total / (total_length * self._num_of_classes)
+        self._cluster_amount = cluster_amount
         print("Mutation score only for cluster reps: " + str(mutation_score_cluster_reps/(cluster_amount* self._num_of_classes)))
         print('Number of clusters: ' + str(cluster_amount))
         print("Mutation score: " + str(self._mutation_score))

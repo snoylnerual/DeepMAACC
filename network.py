@@ -1,14 +1,12 @@
 from keras.callbacks import EarlyStopping
 from keras.datasets import fashion_mnist, mnist, cifar10, cifar100
 from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D
-#from keras_cv.models import ResNetBackbone
+from keras.applications import VGG16, ResNet50
+from keras.utils import to_categorical
 from keras.models import load_model, Model
 from keras import Sequential, layers
-from keras.applications import VGG16, ResNet50
 from argparse import ArgumentParser
 from keras.regularizers import l2
-#from keras.utils import np_utils
-from keras.utils import to_categorical
 import tensorflow as tf
 import scipy.io as sio
 import numpy as np
@@ -22,7 +20,7 @@ class Network:
         else:
             raise ValueError('Model type not recognized')
         self._dataset_name = Dataset.get_dataset_name()
-        self._model_file_name = model_type + '-' + self._dataset_name + '.h5'
+        self._model_file_name = model_type + '-' + self._dataset_name + '.keras'
         self._x_train = Dataset.get_x_train()
         self._y_train = Dataset.get_y_train()
         self._x_test = Dataset.get_x_test()
@@ -31,7 +29,7 @@ class Network:
         self._model = None
 
     def train(self):
-        self._model = getattr(Network, self._model_type)(self._x_train, self._y_train, self._x_test, self._y_test, self._nb_classes)
+        self._model = getattr(Network, self._model_type)(self, self._x_train, self._y_train, self._x_test, self._y_test, self._nb_classes)
 
     def retrieve_model(self):
         self._model = load_model('examples/' + self._dataset_name + '/' + self._model_file_name)
@@ -54,7 +52,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=0)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/fcnn_scratch-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/fcnn_scratch-' + self._dataset_name + '.keras')
         print("Model saved")
         # TODO change print to logs
         return model
@@ -77,7 +75,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/lenet5_scratch-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/lenet5_scratch-' + self._dataset_name + '.keras')
         print("Model saved")
         # TODO change print to logs
         return model
@@ -154,7 +152,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/resnet18_scratch-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/resnet18_scratch-' + self._dataset_name + '.keras')
         print("Model saved")
         # TODO change print to logs
         return model
@@ -166,7 +164,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/resnet50_keras-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/resnet50_keras-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
 
@@ -229,7 +227,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/alexnet_scratch-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/alexnet_scratch-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
 
@@ -272,7 +270,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/vggnet16_scratch-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/vggnet16_scratch-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
 
@@ -283,7 +281,7 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/vggnet16_keras-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/vggnet16_keras-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
 
@@ -405,18 +403,18 @@ class Dataset:
         elif dataset_name == 'svhn':
             nb_classes = 10
             train_data = sio.loadmat('examples/svhn/data/train_32x32.mat')
+            extrain_data = sio.loadmat('examples/svhn/data/extra_32x32.mat')
             test_data = sio.loadmat('examples/svhn/data/test_32x32.mat')
             x_train = train_data['X']
             y_train = train_data['y']
+            x_extrain = extrain_data['X']
+            y_extrain = extrain_data['y']
+            x_train = np.concatenate((x_train, x_extrain), axis=None)
+            y_train = np.concatenate((y_train, y_extrain), axis=None)
             x_test = test_data['X']
             y_test = test_data['y']
-            x_train = x_train.reshape(124800, 28, 28)
-            x_test = x_test.reshape(20800, 28, 28)
-            x_train = tf.image.grayscale_to_rgb(tf.convert_to_tensor(x_train)[..., None])
-            x_test = tf.image.grayscale_to_rgb(tf.convert_to_tensor(x_test)[..., None])
-            x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
-            x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
-            x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
+            x_train = x_train.reshape(604388, 32, 32, 3)
+            x_test = x_test.reshape(26032, 32, 32, 3)
             x_train, x_test = x_train / 255., x_test / 255.
             y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 

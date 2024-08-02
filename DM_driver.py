@@ -1,20 +1,23 @@
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 from argparse import ArgumentParser
-from DMAACC import DMAACC
 from network import Dataset
 from network import Network
-# Model, Mutate, Test
-# Model, Cluster, Mutate, Test
-import csv
-from keras.callbacks import EarlyStopping
+from DMAACC import DMAACC
+import os.path
+
 if __name__ == "__main__":
-    run_type = 'once'
+    run_type = 'approach2'
 
     if run_type == 'once':
         parser = ArgumentParser()
         parser.add_argument('-m',
                             '--model',
                             dest='model_filename',
-                            help='Model file in .h5 format',
+                            help='Model file in .keras format',
                             required=True)
         parser.add_argument('-ml',
                             '--mutation_level',
@@ -41,113 +44,85 @@ if __name__ == "__main__":
                             required=False)
         args = parser.parse_args()
 
-
         dmaacc_run = DMAACC()
 
-
-        dmaacc_run.load_model("examples/mnist/"+args.model_filename)
+        dmaacc_run.load_model(args.model_filename)
         dmaacc_run.set_mutation_level(args.mutation_level)
         dmaacc_run.set_mutation_percent(float(args.mutation_percent))
         dmaacc_run.set_cluster_size(int(args.cluster_size))
         dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
-        dmaacc_run.run_approach_2()
+        df1 = dmaacc_run.run_approach_1()
+        df2, df3 = dmaacc_run.run_approach_2()
 
-
-    #------------------------------------------------------------------------------------------------------
-    elif run_type == 'experiment_approach1':
+    # ========================================================================================================
+    elif run_type == 'approach1':
         dmaacc_run = DMAACC()
         # dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
         dmaacc_run.set_mutation_percent(0.1)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100']
-        model_list = [['fcnn-mnist.h5', 'lenet5-mnist.h5', 'resnet18-mnist.h5', 'alexnet-mnist.h5', 'vggnet16-mnist.h5'],
-                      ['fcnn-kmnist.h5', 'lenet5-kmnist.h5', 'resnet18-kmnist.h5', 'alexnet-kmnist.h5', 'vggnet16-kmnist.h5'],
-                      ['fcnn-fmnist.h5', 'lenet5-fmnist.h5', 'resnet18-fmnist.h5', 'alexnet-fmnist.h5', 'vggnet16-fmnist.h5'],
-                      ['fcnn-emnist.h5', 'lenet5-emnist.h5', 'resnet18-emnist.h5', 'alexnet-emnist.h5', 'vggnet16-emnist.h5'],
-                      ['resnet18-cifar10.h5' 'vggnet16-cifar10.h5'],
-                      ['resnet18-cifar100.h5' 'vggnet16-cifar100.h5']]
         n_list = [2, 4, 6, 8, 10]
-        fields = ['model_name', 'clusters_per_layer', 'mutation_level', 'mutation_percent', 'start_time', 'end_time',
-                  'diff', 'mutation_score', 'original_model_acc']
-        with open('experiments_approach1.csv', 'w') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(fields)
 
+        model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
+        model_list = []
+        for dataset in dataset_list:
+            for model in model_type_list:
+                if os.path.isfile('examples/' + dataset + '/' + model + '-' + dataset + '.keras'):
+                    model_list += model + '-' + dataset + '.keras'
+        csvfile = 'experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'
+        for ds, model_l in zip(dataset_list, model_list):
+            d = Dataset(ds)
+            dmaacc_run.set_dataset(d)
+            for model_n in model_l:
+                dmaacc_run.load_model('examples/' + ds + '/' + model_n)
+                model_current = dmaacc_run.get_model()
+                for i in range(30):
+                    dmaacc_run.set_mutation_level('cluster')
+                    for num in n_list:
+                        dmaacc_run.set_cluster_size(num)
+                        df_clusters = dmaacc_run.run_approach_1()
+                        if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
+                            df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                        else:
+                            df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
-            for ds, model_l in zip(dataset_list, model_list):
-                experiment_data = []
-                d = Dataset(ds)
-                dmaacc_run.set_dataset(d)
-                for model_n in model_l:
-                    dmaacc_run.load_model('examples/' + ds + '/' + model_n)
-                    model_current = dmaacc_run.get_model()
-                    for i in range(30):
-                        h = model_current.fit(d.get_x_train(), d.get_y_train(), epochs=20,
-                                          validation_data=(d.get_x_test(), d.get_y_test()),callbacks=[early_stopping])
-                        acc = h.history['accuracy'][-1]
-                        dmaacc_run.set_mutation_level('cluster')
-                        for num in n_list:
-                            dmaacc_run.set_clusters_per_layer(num)
-                            start, end, mut_score = dmaacc_run.run()
-                            experiment_data += [[model_n.split('.')[0], num, 'cluster', 0.1, start, end, end - start, mut_score, acc]]
+                    dmaacc_run.set_mutation_level('neuron')
+                    df_clusters = dmaacc_run.run_approach_1()
+                    if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
+                        df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                    else:
+                        df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
-
-                        dmaacc_run.set_mutation_level('neuron')
-                        start, end, mut_score = dmaacc_run.run()
-                        experiment_data += [[model_n.split('.')[0], 0, 'neuron', 0.1, start, end, end - start, mut_score, acc]]
-                csvwriter.writerows(experiment_data)
-
-
-            # print(experiment_data)
-    elif run_type == 'experiment_approach2':
-
-        model_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100']
-
+    # ========================================================================================================
+    elif run_type == 'approach2':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
-        # dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
-        # dmaacc_run.set_mutation_percent(0.1)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100']
-        model_list = [['fcnn-mnist.h5', 'lenet5-mnist.h5', 'resnet18-mnist.h5', 'alexnet-mnist.h5', 'vggnet16-mnist.h5'],
-                      ['fcnn-kmnist.h5', 'lenet5-kmnist.h5', 'resnet18-kmnist.h5', 'alexnet-kmnist.h5', 'vggnet16-kmnist.h5'],
-                      ['fcnn-fmnist.h5', 'lenet5-fmnist.h5', 'resnet18-fmnist.h5', 'alexnet-fmnist.h5', 'vggnet16-fmnist.h5'],
-                      ['fcnn-emnist.h5', 'lenet5-emnist.h5', 'resnet18-emnist.h5', 'alexnet-emnist.h5', 'vggnet16-emnist.h5'],
-                      ['resnet18-cifar10.h5', 'vggnet16-cifar10.h5'],
-                      ['resnet18-cifar100.h5', 'vggnet16-cifar100.h5']]
-        n_list = [2, 4, 6, 8, 10]
-        fields = ['model_name', 'clusters_per_layer', 'mutation_level', 'mutation_percent', 'start_time', 'end_time',
-                  'diff', 'mutation_score', 'original_model_acc']
-        with open('experiments_approach2.csv', 'w') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(fields)
+        dmaacc_run.set_ParHAC_thresholds([n/2 for n in range(6, 15)])
+        model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
+        model_list = []
+        temp_list = []
+        for dataset in dataset_list:
+            for model in model_type_list:
+                if os.path.isfile('examples/'+dataset+'/'+model+'-'+dataset+'.keras'):
+                    temp_list += [model+'-'+dataset+'.keras']
+            model_list += [temp_list]
 
-
-            for ds, model_l in zip(dataset_list, model_list):
-                experiment_data = []
-                d = Dataset(ds)
-                dmaacc_run.set_dataset(d)
-                for model_n in model_l:
-                    dmaacc_run.load_model('examples/' + ds + '/' + model_n)
-                    model_current = dmaacc_run.get_model()
-                    for i in range(30):
-                        h = model_current.fit(d.get_x_train(), d.get_y_train(), epochs=20,
-                                          validation_data=(d.get_x_test(), d.get_y_test()),callbacks=[early_stopping])
-                        acc = h.history['accuracy'][-1]
-                        dmaacc_run.set_mutation_level('cluster')
-                        for num in n_list:
-                            dmaacc_run.set_clusters_per_layer(num)
-                            start, end, mut_score = dmaacc_run.run()
-                            experiment_data += [[model_n.split('.')[0], num, 'cluster', 0.1, start, end, end - start, mut_score, acc]]
-
-
-                        dmaacc_run.set_mutation_level('neuron')
-                        start, end, mut_score = dmaacc_run.run()
-                        experiment_data += [[model_n.split('.')[0], 0, 'neuron', 0.1, start, end, end - start, mut_score, acc]]
-                csvwriter.writerows(experiment_data)
-
-
-            # print(experiment_data)
+        for ds, model_l in zip(dataset_list, model_list):
+            d = Dataset(ds)
+            dmaacc_run.set_dataset(d)
+            for model_n in model_l:
+                dmaacc_run.load_model('examples/' + ds + '/' + model_n)
+                model_current = dmaacc_run.get_model()
+                for i in range(30):
+                    dmaacc_run.set_mutation_level(['cluster', 'neuron'])
+                    df_vanilla, df_cluster = dmaacc_run.run_approach_2()
+                    if os.path.isfile('experiments_approach2_vanilla.csv'):
+                        df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='a', header=False, index=False)
+                    else:
+                        df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='w', header=True, index=False)
+                    if os.path.isfile('experiments_approach2_cluster.csv'):
+                        df_vanilla.to_csv('experiments_approach2_cluster.csv', mode='a', header=False, index=False)
+                    else:
+                        df_vanilla.to_csv('experiments_approach2_cluster.csv', mode='w', header=True, index=False)

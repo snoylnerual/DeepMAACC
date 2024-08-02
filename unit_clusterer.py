@@ -1,7 +1,8 @@
 import numpy as np
 from keras.layers import Dense, Conv2D
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, normalize
+from sklearn.preprocessing import normalize
 from utils import model_ok, is_softmax_classifier
 
 import ctypes
@@ -17,7 +18,19 @@ class UnitClustering:
         if not is_softmax_classifier(model):
             raise ValueError('A classifier with softmax output is expected')
         self._model = model
-        self._threshold = 0.95
+        self._threshold = 0.5
+        self._max_cluster_size = None
+        self._min_cluster_size = None
+        self._mean_cluster_size = None
+
+    def get_max_cluster_size(self):
+        return self._max_cluster_size
+
+    def get_min_cluster_size(self):
+        return self._min_cluster_size
+
+    def get_mean_cluster_size(self):
+        return self._mean_cluster_size
 
     def set_threshold(self, threshold):
         self._threshold = threshold
@@ -26,13 +39,12 @@ class UnitClustering:
         if cluster_sz <= 0:
             raise ValueError('Cluster size must be a positive number')
         clusters = []
+        cluster_size_list = []
         for layer_index in range(len(self._model.layers) - 1):  # exclude last layer
             layer = self._model.layers[layer_index]
 
-
             if not isinstance(layer, Dense) and not isinstance(layer, Conv2D):
                 continue
-
 
             w = layer.get_weights()
             a = w[0]
@@ -54,39 +66,32 @@ class UnitClustering:
                 if cluster not in cluster_index_map:
                     cluster_index_map[cluster] = []
                 cluster_index_map[cluster].append(unit_index)
+
+            t_len = len(clusters)
             for (_, unit_indices) in cluster_index_map.items():
                 clusters.append(MutableUnitCluster(self._model, layer_index, unit_indices))
+            cluster_size_list += [len(clusters) - t_len]
+
+
+        self._max_cluster_size = max(cluster_size_list)
+        self.min_cluster_size = min(cluster_size_list)
+        self.mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
         return clusters
 
 
-    def get_graph_clusters(self, mutations):
+    def get_graph_clusters(self, mutations, threshold):
+
         mutant_layer_dict = {}
         for mut in mutations:  # mutant type in a list of mutants
             layer = mut.get_layer()
             neuron = mut.get_neuron()
-            # tuple = (layer_number, neuron_number, weights, biases)
             t = (layer, neuron, ) + tuple(mut.get_model().layers[layer].get_weights()[0][...,neuron],) + (mut.get_model().layers[layer].get_weights()[1][neuron],)
             mut.set_tuple(t)
             if layer in mutant_layer_dict:
                 mutant_layer_dict[layer] += [mut]
             else:
                 mutant_layer_dict[layer] = [mut]
-        # should get a dictionary of all the different layers with a list of mutations for each layer key
-
-        # tuple_list = []
-        # for key, value in mutant_layer_dict.items():
-        #     layer_num = key
-        #     mutant_layer_dict[key] = value
-        #     for mut in value:  # all the mutants that are in the layer
-        #         neuron_num = mut.get_neuron()
-        #         weights = mut.get_model().layers[key].get_weights()[0]
-        #         biases = mut.get_model().layers[key].get_weights()[1]
-        #         t = (layer_num, neuron_num, weights, biases)
-        #         value.set_tuple(t)
-        #         tuple_list += [neuron_num,t]
         list_of_clusters = []
-
-
         for layer_number, mutant_list in mutant_layer_dict.items():
             n = len(mutant_list)  # mutations is just a long list
             print('Clustering %d mutants...' % n)
@@ -99,22 +104,20 @@ class UnitClustering:
                     nodes.append(i)
                     nodes.append(j)
                     weights.append(distance.euclidean(a.get_tuple(), b.get_tuple()))
-            list_of_clusters += [[self.do_clustering(nodes, weights, self._threshold)]]
-            #self._clusters = clusters
-            #print('%d mutant cluster(s) are created.' % len(clusters))
-            #print('Testing...')
-            #for cluster in clusters:
-            #    representative_mutant = self._mutants_table[self._id_list[cluster[0]]]
-            #    mutant_predictions = representative_mutant.predict(self._test_inputs, verbose=0)
-            #    self._killed_classes_sum += self._killed_classes(mutant_predictions) * len(cluster)
-            #end_time = time()
-            #self._mutation_testing_time += end_time - start_time
+            list_of_clusters += [[self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)]]
+
+        cluster_size_list = []
         list_of_mutant_clusters = []
         for layer_cluster_list, mutant_list in zip(list_of_clusters, mutant_layer_dict.values()):
             temp = []
             for layer_cluster in layer_cluster_list:
                 temp += [np.array(mutant_list)[np.array(layer_cluster)]]
+                cluster_size_list += [len(layer_cluster)]
             list_of_mutant_clusters += temp
+
+        self._max_cluster_size = max(cluster_size_list)
+        self.min_cluster_size = min(cluster_size_list)
+        self.mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
 
         return list_of_mutant_clusters
 
@@ -133,8 +136,9 @@ class UnitClustering:
         rs = libquickstart.do_clustering((ctypes.c_int * len_edges)(*edges),
                                (ctypes.c_float * len_weights)(*weights),
                                len_edges,
-                               0.1)
-        return [node_array_to_list(rs.clusters[i]) for i in range(rs.length)]
+                               threshold)
+        m = [node_array_to_list(rs.clusters[i]) for i in range(rs.length)]
+        return m
 
 
 def node_array_to_list(node_array):
