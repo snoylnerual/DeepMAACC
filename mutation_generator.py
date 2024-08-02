@@ -398,7 +398,7 @@ class MutationOperator:
                         # temp_b = weights[1][neuron_index]
                         for val in weights:
                             val_shape = val.shape
-                            if (len(val.shape) is not 1):
+                            if (len(val.shape) != 1):
                                 if CONV2D:
                                     # temp_w = np.array(weights[0][:, :, :, neuron_index])
                                     input_neuron_indices = [n for n in range(val_shape[2])]

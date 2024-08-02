@@ -4,10 +4,11 @@ from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, BatchNormaliz
 #from keras_cv.models import ResNetBackbone
 from keras.models import load_model, Model
 from keras import Sequential, layers
-from keras.applications import VGG16  # , ResNet50
+from keras.applications import VGG16, ResNet50
 from argparse import ArgumentParser
 from keras.regularizers import l2
-from keras.utils import np_utils
+#from keras.utils import np_utils
+from keras.utils import to_categorical
 import tensorflow as tf
 import scipy.io as sio
 import numpy as np
@@ -16,28 +17,21 @@ import os
 
 class Network:
     def __init__(self, model_type, Dataset):
-        self._model_type = model_type
+        if model_type in dir(Network) and ('scratch' in model_type or 'keras' in model_type):
+            self._model_type = model_type
+        else:
+            raise ValueError('Model type not recognized')
         self._dataset_name = Dataset.get_dataset_name()
         self._model_file_name = model_type + '-' + self._dataset_name + '.h5'
         self._x_train = Dataset.get_x_train()
         self._y_train = Dataset.get_y_train()
         self._x_test = Dataset.get_x_test()
         self._y_test = Dataset.get_y_test()
+        self._nb_classes = Dataset.get_nb_classes()
         self._model = None
 
     def train(self):
-        if self._model_type == 'fcnn':
-            self._model = self.fcnn(self._x_train, self._y_train, self._x_test, self._y_test)
-        elif self._model_type == 'lenet5':
-            self._model = self.lenet5(self._x_train, self._y_train, self._x_test, self._y_test)
-        elif self._model_type == 'resnet18':
-            self._model = self.ResNet18(self._x_train, self._y_train, self._x_test, self._y_test)
-        elif self._model_type == 'alexnet':
-            self._model = self.alexnet(self._x_train, self._y_train, self._x_test, self._y_test)
-        elif self._model_type == 'vggnet16':
-            self._model = self.vggnet16(self._x_train, self._y_train, self._x_test, self._y_test)
-        else:
-            raise ValueError('Invalid model type')
+        self._model = getattr(Network, self._model_type)(self._x_train, self._y_train, self._x_test, self._y_test, self._nb_classes)
 
     def retrieve_model(self):
         self._model = load_model('examples/' + self._dataset_name + '/' + self._model_file_name)
@@ -45,8 +39,8 @@ class Network:
     def get_model(self):
         return self._model
 
-    def fcnn(self, x_train, y_train, x_test, y_test):
-        nb_classes = 10
+    def fcnn_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
+        #nb_classes = 10
         model = Sequential()
 
         model.add(Flatten(input_shape=(32, 32, 3)))
@@ -60,13 +54,13 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=0)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/fcnn-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/fcnn_scratch-' + self._dataset_name + '.h5')
         print("Model saved")
         # TODO change print to logs
         return model
 
-    def lenet5(self, x_train, y_train, x_test, y_test):
-        nb_classes = 10
+    def lenet5_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
+        #nb_classes = 10
         model = Sequential()
 
         model.add(Conv2D(6, kernel_size=(5, 5), activation='relu', input_shape=(32, 32, 3)))
@@ -83,112 +77,11 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/lenet5-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/lenet5_scratch-' + self._dataset_name + '.h5')
         print("Model saved")
         # TODO change print to logs
         return model
 
-    # def resnet18(self, x_train, y_train, x_test, y_test):
-    #     nb_classes = 10
-    #     model = Sequential()
-    #
-    #     model.add(Input(shape=(32, 32, 3)))
-    #     model.add(Conv2D(64, kernel_size=(7, 7), strides=(2, 2), padding='same', activation='relu', input_shape=(32, 32, 3)))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(64, kernel_size=(3, 3), strides=(1, 1), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(128, kernel_size=(1, 1), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(128, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(Conv2D(128, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(128, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(256, kernel_size=(1, 1), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(256, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(256, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(Conv2D(256, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(256, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(512, kernel_size=(1, 1), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(512, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(512, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(Conv2D(512, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(Conv2D(512, kernel_size=(3, 3), strides=(2, 2), padding='same', activation='relu'))
-    #     model.add(BatchNormalization())
-    #     model.add(Activation('relu'))
-    #
-    #     #model.add(Conv2D(64, kernel_size=(7, 7), strides=(2, 2), padding='same', activation='relu'))
-    #     #model.add(BatchNormalization())
-    #     model.add(Add())
-    #     model.add(Activation('relu'))
-    #
-    #     model.add(AveragePooling2D())  # pool_size=(2, 2)))
-    #     model.add(Flatten())
-    #     model.add(Dense(nb_classes, activation='softmax'))
-    #
-    #
-    #     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    #
-    #     early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-    #     model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
-    #
-    #     model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.h5')
-    #     print("Model saved")
-    #     # TODO change print to logs
-    #     return model
 
     def conv2d_bn(self, x, filters, kernel_size, weight_decay=.0, strides=(1, 1)):
         layer = Conv2D(filters=filters,
@@ -230,9 +123,9 @@ class Network:
         out = Activation('relu')(out)
         return out
 
-    def ResNet18(self, x_train, y_train, x_test, y_test):
+    def resnet18_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
         #https://github.com/jerett/Keras-CIFAR10/blob/master/classifiers/ResNet.py
-        nb_classes = 10
+        #nb_classes = 10
         weight_decay = 1e-4
         input = Input(shape=(32, 32, 3))
         x = input
@@ -261,152 +154,27 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/resnet18_scratch-' + self._dataset_name + '.h5')
         print("Model saved")
         # TODO change print to logs
         return model
 
-    def resnet18_2(self, x_train, y_train, x_test, y_test):
+
+    def resnet50_keras(self, x_train, y_train, x_test, y_test):
         nb_classes = 10
-        input = Input(shape=(32,32,3))
-        c1 = input
-        c1 = Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding='same',  use_bias=False, kernel_regularizer=l2(1e-4))(c1)
-        c1 = BatchNormalization()(c1)
-        c1 = Activation('relu')(c1)
+        model = ResNet50(weights='imagenet', include_top=False, input_shape=(32, 32, 3))
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
+        model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        # # conv 2
-        residual_x = c1 #x
-        c2 = Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c1)
-        c2 = BatchNormalization()(c2)
-        c2 = Activation('relu')(c2)
-        c2 = Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c2)
-        c2 = BatchNormalization()(c2)
-        c2 = layers.add([residual_x, c2])
-        c2 = Activation('relu')(c2)
-
-        residual_x = c2
-        c22 = Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c2)
-        c22 = BatchNormalization()(c22)
-        c22 = Activation('relu')(c22)
-        c22 = Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c22)
-        c22 = BatchNormalization()(c22)
-        c22 = layers.add([residual_x, c22])
-        c22 = Activation('relu')(c22)
-
-        # # conv 3
-        c3 = Conv2D(filters=128, kernel_size=(1, 1), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c22)
-        x = BatchNormalization()(c3)
-        residual_x = c3
-        c31 = Conv2D(filters=128, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c3)
-        c31 = BatchNormalization()(c31)
-        c31 = Activation('relu')(c31)
-        c31 = Conv2D(filters=128, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(c31)
-        c31 = BatchNormalization()(c31)
-        c31 = layers.add([residual_x, c31])
-        x = Activation('relu')(c31)
-
-        residual_x = x
-        x = Conv2D(filters=128, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters=128, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = layers.add([residual_x, x])
-        x = Activation('relu')(x)
-
-        # # conv 4
-
-        x = Conv2D(filters=256, kernel_size=(1, 1), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        residual_x = x
-        x = Conv2D(filters=256, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters=256, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = layers.add([residual_x, x])
-        x = Activation('relu')(x)
-
-        residual_x = x
-        x = Conv2D(filters=256, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters=256, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = layers.add([residual_x, x])
-        x = Activation('relu')(x)
-
-        # # conv 5
-
-        x = Conv2D(filters=512, kernel_size=(1, 1), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        residual_x = x
-        x = Conv2D(filters=512, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters=512, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = layers.add([residual_x, x])
-        x = Activation('relu')(x)
-
-        residual_x = x
-        x = Conv2D(filters=512, kernel_size=(3, 3), strides=(2, 2), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = Conv2D(filters=512, kernel_size=(3, 3), strides=(1, 1), padding='same', use_bias=False,
-                   kernel_regularizer=l2(1e-4))(x)
-        x = BatchNormalization()(x)
-        x = layers.add([residual_x, x])
-        x = Activation('relu')(x)
-
-        x = AveragePooling2D(pool_size=(4, 4), padding='valid')(x)
-        x = Flatten()(x)
-        x = Dense(nb_classes, activation='softmax')(x)
-        model = Model(input, x, name='ResNet18')
-
-        # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-        #
-        # early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        # model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
-        #
-        # model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.h5')
-        # print("Model saved")
-
+        model.save('examples/' + self._dataset_name + '/resnet50_keras-' + self._dataset_name + '.h5')
+        print("Model saved")
         return model
 
-    # def resnet18_2(self, x_train, y_train, x_test, y_test):
-    #     nb_classes = 10
-    #     model = ResNetBackbone.from_preset('resnet18')
-    #     early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-    #     model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
-    #
-    #     model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.h5')
-    #     print("Model saved")
-    #     return model
 
-
-    def alexnet(self, x_train, y_train, x_test, y_test):
+    def alexnet_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
         # from https://medium.datadriveninvestor.com/alexnet-implementation-using-keras-7c10d1bb6715
         # Instantiate an empty model
-        nb_classes = 10
+        #nb_classes = 10
         model = Sequential()
         model.add(Input(shape=(32, 32, 3)))
         model.add(ZeroPadding2D((5, 5)))
@@ -461,12 +229,12 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/alexnet-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/alexnet_scratch-' + self._dataset_name + '.h5')
         print("Model saved")
         return model
 
-    def vggnet16(self, x_train, y_train, x_test, y_test):
-        nb_classes = 10
+    def vggnet16_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
+        #nb_classes = 10
 
         model = Sequential()
 
@@ -504,7 +272,18 @@ class Network:
         early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
         model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/vggnet16-' + self._dataset_name + '.h5')
+        model.save('examples/' + self._dataset_name + '/vggnet16_scratch-' + self._dataset_name + '.h5')
+        print("Model saved")
+        return model
+
+    def vggnet16_keras(self, x_train, y_train, x_test, y_test, nb_classes):
+        #nb_classes = 10
+        model = VGG16(classes=10)
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=["accuracy"])
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
+        model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
+
+        model.save('examples/' + self._dataset_name + '/vggnet16_keras-' + self._dataset_name + '.h5')
         print("Model saved")
         return model
 
@@ -524,10 +303,11 @@ class Dataset:
             self._y_train = np.load('examples/' + dataset_name + '/data/' + dataset_name + '_train_outputs.npy')
             self._x_test = np.load('examples/' + dataset_name + '/data/' + dataset_name + '_test_inputs.npy')
             self._y_test = np.load('examples/' + dataset_name + '/data/' + dataset_name + '_test_outputs.npy')
+            self._nb_classes = self.get_nb_classes()
         else:
             print("Files don't exist")
             # TODO change print to logs
-            self._x_train, self._y_train, self._x_test, self._y_test = self.dataset(dataset_name)
+            self._x_train, self._y_train, self._x_test, self._y_test, self._nb_classes = self.dataset(dataset_name)
 
     def get_dataset_name(self):
         return self._dataset_name
@@ -539,6 +319,17 @@ class Dataset:
         return self._x_test
     def get_y_test(self):
         return self._y_test
+
+    def get_nb_classes(self):
+        if self._dataset_name in ['mnist', 'fmnist', 'kmnist', 'cifar10', 'svhn']:
+            nb_classes = 10
+        elif self._dataset_name in ['emnist']:
+            nb_classes = 27
+        elif self._dataset_name in ['cifar100']:
+            nb_classes = 100
+        else:
+            raise ValueError("Dataset not exist")
+        return nb_classes
 
     def dataset(self,dataset_name):
         if dataset_name == 'mnist':
@@ -552,7 +343,7 @@ class Dataset:
             x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train, nb_classes), np_utils.to_categorical(y_test, nb_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
         elif dataset_name == 'fmnist':
             print("Fmnist data retrieval")
             # TODO change print to logs
@@ -564,7 +355,7 @@ class Dataset:
             x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train, nb_classes), np_utils.to_categorical(y_test, nb_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
         elif dataset_name == 'kmnist':
             nb_classes = 10
             x_train = np.load('examples/kmnist/data/kmnist_train_inputs.npz')['arr_0']
@@ -577,7 +368,7 @@ class Dataset:
             x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train, nb_classes), np_utils.to_categorical(y_test, nb_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
         elif dataset_name == 'emnist':
             nb_classes = 27
             data = sio.loadmat('examples/emnist/data/emnist-letters')['dataset']
@@ -593,7 +384,7 @@ class Dataset:
             x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train), np_utils.to_categorical(y_test)
+            y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
         elif dataset_name == 'cifar10':
             print("Cifar10 data retrieval")
@@ -601,7 +392,7 @@ class Dataset:
             (x_train, y_train), (x_test, y_test) = cifar10.load_data()
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train, nb_classes), np_utils.to_categorical(y_test, nb_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
 
         elif dataset_name == 'cifar100':
             print("Cifar100 data retrieval")
@@ -609,7 +400,26 @@ class Dataset:
             (x_train, y_train), (x_test, y_test) = cifar100.load_data()
             x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = np_utils.to_categorical(y_train, nb_classes), np_utils.to_categorical(y_test, nb_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
+
+        elif dataset_name == 'svhn':
+            nb_classes = 10
+            train_data = sio.loadmat('examples/svhn/data/train_32x32.mat')
+            test_data = sio.loadmat('examples/svhn/data/test_32x32.mat')
+            x_train = train_data['X']
+            y_train = train_data['y']
+            x_test = test_data['X']
+            y_test = test_data['y']
+            x_train = x_train.reshape(124800, 28, 28)
+            x_test = x_test.reshape(20800, 28, 28)
+            x_train = tf.image.grayscale_to_rgb(tf.convert_to_tensor(x_train)[..., None])
+            x_test = tf.image.grayscale_to_rgb(tf.convert_to_tensor(x_test)[..., None])
+            x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
+            x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2), (0, 0)), 'constant')
+            x_train, x_test = np.expand_dims(x_train, axis=-1), np.expand_dims(x_test, axis=-1)
+            x_train, x_test = x_train / 255., x_test / 255.
+            y_train, y_test = to_categorical(y_train), to_categorical(y_test)
+
         else:
             x_train = y_train = x_test = y_test = np.array([])
 
@@ -617,7 +427,7 @@ class Dataset:
         np.save('examples/' + dataset_name + '/data/' + dataset_name + '_train_outputs', y_train)
         np.save('examples/' + dataset_name + '/data/' + dataset_name + '_test_inputs', x_test)
         np.save('examples/' + dataset_name + '/data/' + dataset_name + '_test_outputs', y_test)
-        return x_train, y_train, x_test, y_test
+        return x_train, y_train, x_test, y_test, nb_classes
         pass
 
     def check_file(self, file_name):
