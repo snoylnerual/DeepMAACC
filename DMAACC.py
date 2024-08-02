@@ -3,6 +3,7 @@ from unit_clusterer import UnitClustering
 from mutation_score import MutationScore
 from keras.models import load_model
 from network import Dataset
+import numpy as np
 import time
 
 
@@ -86,13 +87,31 @@ class DMAACC:
             return start, end, ms.get_mutation_score() #, accs
 
     def run_approach_2(self):
+        time_list = {}
+        time_list['start'] = time.time()
         mg = MutationGenerator(self._model_filename, self._model, [], 'neuron')
         mg.set_mutation_percent(self._mutation_percent)
         mutations = mg.get_mutations(self._mutator_list)
+        self._dataset = Dataset(self._model_filename.split('-')[1].split('.')[0])
+
+        time_list['mutation_end'] = time.time()
+
         ms = MutationScore(self._model_filename.split('.')[0], self._model, mutations, self._dataset,
                            self._dataset.get_dataset_name(), self._mutation_level)
 
         if self._mutation_level == 'cluster':
-            pass
+            unit_clustering = UnitClustering(self._model)
+            graph_clusters = unit_clustering.get_graph_clusters(mutations)
+            ms.set_clusters(graph_clusters)
+            ms.cluster_run()
+            time_list['mutation_score_end'] = time.time()
+
+        # ms.run()
+        # print('Mutation Score: ' + str(ms.get_mutation_score()))
+        # time_list['end'] = time.time()
+
+        return time_list,  ms.get_mutation_score(), ms.get_cluster_mutation_score()
+
+
 
 
