@@ -1,8 +1,8 @@
 from keras.callbacks import EarlyStopping
-from keras.datasets import fashion_mnist, mnist, cifar10, cifar100
-from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D
+from keras.datasets import fashion_mnist, mnist, cifar10, cifar100, imdb, reuters
+from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D, LSTM, Embedding
 from keras.applications import VGG16, ResNet50
-from keras.utils import to_categorical
+from keras.utils import to_categorical, pad_sequences
 from keras.models import load_model, Model
 from keras import Sequential, layers
 from argparse import ArgumentParser
@@ -37,7 +37,7 @@ class Network:
     def get_model(self):
         return self._model
 
-    def fcnn_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
+    def fcnn(self, x_train, y_train, x_test, y_test, nb_classes):
         #nb_classes = 10
         model = Sequential()
 
@@ -49,37 +49,88 @@ class Network:
 
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=0)
-        model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
+        #early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=0)
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/fcnn_scratch-' + self._dataset_name + '.keras')
+        model.save('examples/' + self._dataset_name + '/fcnn-' + self._dataset_name + '.keras')
         print("Model saved")
         # TODO change print to logs
         return model
 
-    def lenet5_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
+    def lenet5(self, x_train, y_train, x_test, y_test, nb_classes):
         #nb_classes = 10
         model = Sequential()
 
-        model.add(Conv2D(6, kernel_size=(5, 5), activation='relu', input_shape=(32, 32, 3)))
+        model.add(Conv2D(6, kernel_size=(5, 5), activation='sigmoid', input_shape=(32, 32, 3)))
         model.add(AveragePooling2D(pool_size=(2, 2)))
-        model.add(Conv2D(16, kernel_size=(5, 5), activation='relu'))
+        model.add(Conv2D(16, kernel_size=(5, 5), activation='sigmoid'))
         model.add(AveragePooling2D(pool_size=(2, 2)))
         model.add(Flatten())
-        model.add(Dense(120, activation='relu'))
-        model.add(Dense(84, activation='relu'))
-        model.add(Dense(10, activation='softmax'))
+        model.add(Dense(120, activation='sigmoid'))
+        model.add(Dense(84, activation='sigmoid'))
+        model.add(Dense(nb_classes, activation='softmax'))
 
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
+        #early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
 
-        model.save('examples/' + self._dataset_name + '/lenet5_scratch-' + self._dataset_name + '.keras')
+        model.save('examples/' + self._dataset_name + '/lenet5-' + self._dataset_name + '.keras')
         print("Model saved")
         # TODO change print to logs
         return model
 
+    def resnet18(self, x_train, y_train, x_test, y_test, nb_classes):
+        #https://github.com/jerett/Keras-CIFAR10/blob/master/classifiers/ResNet.py
+        #nb_classes = 10
+        weight_decay = 1e-4
+        input = Input(shape=(32, 32, 3))
+        x = input
+        x = Resizing(224,224)(x)
+        x = self.conv2d_bn_relu(x, filters=64, kernel_size=(7, 7), weight_decay=weight_decay, strides=(2, 2))
+        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2),  padding='same')(x)
+        # # conv 2
+        x = self.ResidualBlock(x, filters=64, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
+        x = self.ResidualBlock(x, filters=64, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
+        # # conv 3
+        x = self.ResidualBlock(x, filters=128, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
+        x = self.ResidualBlock(x, filters=128, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
+        # # conv 4
+        x = self.ResidualBlock(x, filters=256, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
+        x = self.ResidualBlock(x, filters=256, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
+        # # conv 5
+        x = self.ResidualBlock(x, filters=512, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
+        x = self.ResidualBlock(x, filters=512, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
+        x = AveragePooling2D(pool_size=(4, 4), padding='valid')(x)
+        x = Flatten()(x)
+        x = Dense(nb_classes, activation='softmax')(x)
+        model = Model(input, x, name='ResNet18')
+
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        #early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
+
+        model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.keras')
+        print("Model saved")
+        # TODO change print to logs
+        return model
+
+    def rnn(self, x_train, y_train, x_test, y_test, nb_classes):
+        max_features = 20000
+        model = Sequential()
+        model.add(Embedding(max_features, 128))
+        model.add(LSTM(64, return_sequences=True))
+        model.add(LSTM(64))
+        model.add(Dense(nb_classes, activation='softmax'))
+
+        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+        model.save('examples/' + self._dataset_name + '/rnn-' + self._dataset_name + '.keras')
+        print("Model saved")
+
+        return model
 
     def conv2d_bn(self, x, filters, kernel_size, weight_decay=.0, strides=(1, 1)):
         layer = Conv2D(filters=filters,
@@ -121,43 +172,6 @@ class Network:
         out = Activation('relu')(out)
         return out
 
-    def resnet18_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
-        #https://github.com/jerett/Keras-CIFAR10/blob/master/classifiers/ResNet.py
-        #nb_classes = 10
-        weight_decay = 1e-4
-        input = Input(shape=(32, 32, 3))
-        x = input
-        x = Resizing(224,224)(x)
-        x = self.conv2d_bn_relu(x, filters=64, kernel_size=(7, 7), weight_decay=weight_decay, strides=(2, 2))
-        x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2),  padding='same')(x)
-        # # conv 2
-        x = self.ResidualBlock(x, filters=64, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
-        x = self.ResidualBlock(x, filters=64, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
-        # # conv 3
-        x = self.ResidualBlock(x, filters=128, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
-        x = self.ResidualBlock(x, filters=128, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
-        # # conv 4
-        x = self.ResidualBlock(x, filters=256, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
-        x = self.ResidualBlock(x, filters=256, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
-        # # conv 5
-        x = self.ResidualBlock(x, filters=512, kernel_size=(3, 3), weight_decay=weight_decay, downsample=True)
-        x = self.ResidualBlock(x, filters=512, kernel_size=(3, 3), weight_decay=weight_decay, downsample=False)
-        x = AveragePooling2D(pool_size=(4, 4), padding='valid')(x)
-        x = Flatten()(x)
-        x = Dense(nb_classes, activation='softmax')(x)
-        model = Model(input, x, name='ResNet18')
-
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        model.fit(x_train, y_train, epochs=20, validation_data=(x_test, y_test), callbacks=[early_stopping])
-
-        model.save('examples/' + self._dataset_name + '/resnet18_scratch-' + self._dataset_name + '.keras')
-        print("Model saved")
-        # TODO change print to logs
-        return model
-
-
     def resnet50_keras(self, x_train, y_train, x_test, y_test):
         nb_classes = 10
         model = ResNet50(weights='imagenet', include_top=False, input_shape=(32, 32, 3))
@@ -167,7 +181,6 @@ class Network:
         model.save('examples/' + self._dataset_name + '/resnet50_keras-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
-
 
     def alexnet_scratch(self, x_train, y_train, x_test, y_test, nb_classes):
         # from https://medium.datadriveninvestor.com/alexnet-implementation-using-keras-7c10d1bb6715
@@ -325,6 +338,10 @@ class Dataset:
             nb_classes = 27
         elif self._dataset_name in ['cifar100']:
             nb_classes = 100
+        elif self._dataset_name in ['idmb']:
+            nb_classes = 2
+        elif self._dataset_name in ['reuters']:
+            nb_classes = 90
         else:
             raise ValueError("Dataset not exist")
         return nb_classes
@@ -418,8 +435,25 @@ class Dataset:
             x_train, x_test = x_train / 255., x_test / 255.
             y_train, y_test = to_categorical(y_train), to_categorical(y_test)
 
+        elif dataset_name == 'idmb':
+            nb_classes = 2
+            max_features = 20000
+            maxlen = 80
+            (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
+
+        elif dataset_name == 'reuters':
+            nb_classes = 90
+            max_features = 20000
+            maxlen = 80
+            (x_train, y_train), (x_test, y_test) = reuters.load_data(num_words=max_features)
+            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
+
         else:
             x_train = y_train = x_test = y_test = np.array([])
+            nb_classes = 10
 
         np.save('examples/' + dataset_name + '/data/' + dataset_name + '_train_inputs', x_train)
         np.save('examples/' + dataset_name + '/data/' + dataset_name + '_train_outputs', y_train)

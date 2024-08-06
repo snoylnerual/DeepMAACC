@@ -62,13 +62,22 @@ if __name__ == "__main__":
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
         n_list = [2, 4, 6, 8, 10]
 
-        model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
-        model_list = []
-        for dataset in dataset_list:
-            for model in model_type_list:
-                if os.path.isfile('examples/' + dataset + '/' + model + '-' + dataset + '.keras'):
-                    model_list += model + '-' + dataset + '.keras'
+        #model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      ['resnet18-cifar10.keras'],
+                      ['resnet18-cifar100.keras'],
+                      ['resnet18-svhn.keras'],
+                      ['rnn-imdb.keras'],
+                      ['rnn-reuters.keras']]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
+        # model_list = []
+        # for dataset in dataset_list:
+        #     for model in model_type_list:
+        #         if os.path.isfile('examples/' + dataset + '/' + model + '-' + dataset + '.keras'):
+        #             model_list += model + '-' + dataset + '.keras'
         csvfile = 'experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -76,16 +85,16 @@ if __name__ == "__main__":
             for model_n in model_l:
                 dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                 model_current = dmaacc_run.get_model()
-                for i in range(30):
+                for num in n_list:
                     dmaacc_run.set_mutation_level('cluster')
-                    for num in n_list:
+                    for i in range(6):
                         dmaacc_run.set_cluster_size(num)
                         df_clusters = dmaacc_run.run_approach_1()
                         if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
                             df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                         else:
                             df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
-
+                for i in range(6):
                     dmaacc_run.set_mutation_level('neuron')
                     df_clusters = dmaacc_run.run_approach_1()
                     if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
@@ -99,15 +108,24 @@ if __name__ == "__main__":
         dmaacc_run.set_mutation_level("cluster")
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
         dmaacc_run.set_ParHAC_thresholds([n/2 for n in range(6, 15)])
-        model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
-        model_list = []
-        temp_list = []
-        for dataset in dataset_list:
-            for model in model_type_list:
-                if os.path.isfile('examples/'+dataset+'/'+model+'-'+dataset+'.keras'):
-                    temp_list += [model+'-'+dataset+'.keras']
-            model_list += [temp_list]
+        #model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      ['resnet18-cifar10.keras'],
+                      ['resnet18-cifar100.keras'],
+                      ['resnet18-svhn.keras'],
+                      ['rnn-imdb.keras'],
+                      ['rnn-reuters.keras']]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
+        # model_list = []
+        # temp_list = []
+        # for dataset in dataset_list:
+        #     for model in model_type_list:
+        #         if os.path.isfile('examples/'+dataset+'/'+model+'-'+dataset+'.keras'):
+        #             temp_list += [model+'-'+dataset+'.keras']
+        #     model_list += [temp_list]
 
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -115,7 +133,7 @@ if __name__ == "__main__":
             for model_n in model_l:
                 dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                 model_current = dmaacc_run.get_model()
-                for i in range(30):
+                for i in range(6):
                     dmaacc_run.set_mutation_level(['cluster', 'neuron'])
                     df_vanilla, df_cluster = dmaacc_run.run_approach_2()
                     if os.path.isfile('experiments_approach2_vanilla.csv'):
