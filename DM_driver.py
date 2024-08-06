@@ -55,6 +55,37 @@ if __name__ == "__main__":
         df2, df3 = dmaacc_run.run_approach_2()
 
     # ========================================================================================================
+    elif run_type == 'vanilla':
+        dmaacc_run = DMAACC()
+        dmaacc_run.set_mutation_percent(0.1)
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      ['resnet18-cifar10.keras'],
+                      ['resnet18-cifar100.keras'],
+                      ['resnet18-svhn.keras'],
+                      ['rnn-imdb.keras'],
+                      ['rnn-reuters.keras']]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
+
+        csvfile = 'vanilla_experiments.csv'
+        for ds, model_l in zip(dataset_list, model_list):
+            d = Dataset(ds)
+            dmaacc_run.set_dataset(d)
+            for model_n in model_l:
+                dmaacc_run.load_model('examples/' + ds + '/' + model_n)
+                model_current = dmaacc_run.get_model()
+                for i in range(6):
+                    dmaacc_run.set_mutation_level('neuron')
+                    df_clusters = dmaacc_run.run_vanilla()
+                    if os.path.isfile(csvfile):
+                        df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                    else:
+                        df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+
+    # ========================================================================================================
     elif run_type == 'approach1':
         dmaacc_run = DMAACC()
         # dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
@@ -78,7 +109,7 @@ if __name__ == "__main__":
         #     for model in model_type_list:
         #         if os.path.isfile('examples/' + dataset + '/' + model + '-' + dataset + '.keras'):
         #             model_list += model + '-' + dataset + '.keras'
-        csvfile = 'experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'
+        csvfile = 'experiments_approach1_' + str(dmaacc_run.get_mutation_level()) + '.csv'
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
             dmaacc_run.set_dataset(d)
@@ -90,17 +121,17 @@ if __name__ == "__main__":
                     for i in range(6):
                         dmaacc_run.set_cluster_size(num)
                         df_clusters = dmaacc_run.run_approach_1()
-                        if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
+                        if os.path.isfile('experiments_approach1.csv'):
                             df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                         else:
                             df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
-                for i in range(6):
-                    dmaacc_run.set_mutation_level('neuron')
-                    df_clusters = dmaacc_run.run_approach_1()
-                    if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
-                        df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
-                    else:
-                        df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+                # for i in range(6):
+                #     dmaacc_run.set_mutation_level('neuron')
+                #     df_clusters = dmaacc_run.run_approach_1()
+                #     if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
+                #         df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                #     else:
+                #         df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
     # ========================================================================================================
     elif run_type == 'approach2':
@@ -112,13 +143,13 @@ if __name__ == "__main__":
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
-                      ['resnet18-cifar10.keras'],
-                      ['resnet18-cifar100.keras'],
-                      ['resnet18-svhn.keras'],
-                      ['rnn-imdb.keras'],
-                      ['rnn-reuters.keras']]
-        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist', 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras']] #,
+                      # ['resnet18-cifar10.keras'],
+                      # ['resnet18-cifar100.keras'],
+                      # ['resnet18-svhn.keras'],
+                      # ['rnn-imdb.keras'],
+                      # ['rnn-reuters.keras']]
+        dataset_list = ['mnist', 'kmnist', 'fmnist', 'emnist']  # , 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
         # model_list = []
         # temp_list = []
         # for dataset in dataset_list:
@@ -134,13 +165,13 @@ if __name__ == "__main__":
                 dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                 model_current = dmaacc_run.get_model()
                 for i in range(6):
-                    dmaacc_run.set_mutation_level(['cluster', 'neuron'])
+                    dmaacc_run.set_mutation_level(['cluster'])  # , 'neuron'])
                     df_vanilla, df_cluster = dmaacc_run.run_approach_2()
-                    if os.path.isfile('experiments_approach2_vanilla.csv'):
-                        df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='a', header=False, index=False)
-                    else:
-                        df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='w', header=True, index=False)
+                    # if os.path.isfile('experiments_approach2_vanilla.csv'):
+                    #     df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='a', header=False, index=False)
+                    # else:
+                    #     df_vanilla.to_csv('experiments_approach2_vanilla.csv', mode='w', header=True, index=False)
                     if os.path.isfile('experiments_approach2_cluster.csv'):
-                        df_vanilla.to_csv('experiments_approach2_cluster.csv', mode='a', header=False, index=False)
+                        df_cluster.to_csv('experiments_approach2.csv', mode='a', header=False, index=False)
                     else:
-                        df_vanilla.to_csv('experiments_approach2_cluster.csv', mode='w', header=True, index=False)
+                        df_cluster.to_csv('experiments_approach2.csv', mode='w', header=True, index=False)

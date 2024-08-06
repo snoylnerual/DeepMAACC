@@ -15,7 +15,7 @@ import os
 
 class Network:
     def __init__(self, model_type, Dataset):
-        if model_type in dir(Network) and ('scratch' in model_type or 'keras' in model_type):
+        if model_type in dir(Network):  # and ('scratch' in model_type or 'keras' in model_type):
             self._model_type = model_type
         else:
             raise ValueError('Model type not recognized')
@@ -332,13 +332,15 @@ class Dataset:
         return self._y_test
 
     def get_nb_classes(self):
-        if self._dataset_name in ['mnist', 'fmnist', 'kmnist', 'cifar10', 'svhn']:
+        if self._dataset_name in ['mnist', 'fmnist', 'kmnist', 'cifar10']:
             nb_classes = 10
+        elif self._dataset_name in ['svhn']:
+            nb_classes = 11
         elif self._dataset_name in ['emnist']:
             nb_classes = 27
         elif self._dataset_name in ['cifar100']:
             nb_classes = 100
-        elif self._dataset_name in ['idmb']:
+        elif self._dataset_name in ['imdb']:
             nb_classes = 2
         elif self._dataset_name in ['reuters']:
             nb_classes = 90
@@ -418,7 +420,7 @@ class Dataset:
             y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
 
         elif dataset_name == 'svhn':
-            nb_classes = 10
+            nb_classes = 11
             train_data = sio.loadmat('examples/svhn/data/train_32x32.mat')
             extrain_data = sio.loadmat('examples/svhn/data/extra_32x32.mat')
             test_data = sio.loadmat('examples/svhn/data/test_32x32.mat')
@@ -433,14 +435,14 @@ class Dataset:
             x_train = x_train.reshape(604388, 32, 32, 3)
             x_test = x_test.reshape(26032, 32, 32, 3)
             x_train, x_test = x_train / 255., x_test / 255.
-            y_train, y_test = to_categorical(y_train), to_categorical(y_test)
+            y_train, y_test = to_categorical(y_train, num_classes=nb_classes), to_categorical(y_test, num_classes=nb_classes)
 
-        elif dataset_name == 'idmb':
+        elif dataset_name == 'imdb':
             nb_classes = 2
             max_features = 20000
             maxlen = 80
             (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
-            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
             x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
 
         elif dataset_name == 'reuters':
@@ -448,7 +450,7 @@ class Dataset:
             max_features = 20000
             maxlen = 80
             (x_train, y_train), (x_test, y_test) = reuters.load_data(num_words=max_features)
-            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            y_train, y_test = to_categorical(y_train, nb_classes), to_categorical(y_test, nb_classes)
             x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
 
         else:

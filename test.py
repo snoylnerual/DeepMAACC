@@ -3,6 +3,21 @@ import scipy.io as sio
 from keras.utils import to_categorical
 import tensorflow as tf
 import numpy as np
+import pandas as pd
+
+df_clusters = pd.DataFrame(
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+                     'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
+
+df_clusters.loc[len(df_clusters.index)] = ['fcnn', 'mnist', 'neuron', 25, 555, 0.647, 36, 61]
+df_clusters.loc[len(df_clusters.index)] = ['lenet5', 'mnist', 'neuron', 25, 555, 0.647, 36, 61]
+df_clusters.loc[len(df_clusters.index)] = ['resnet', 'mnist', 'neuron', 25, 555, 0.647, 36, 61]
+df_clusters.loc[len(df_clusters.index)] = ['rnn', 'mnist', 'neuron', 25, 555, 0.647, 36, 61]
+
+# df_clusters = df_clusters.add(pd.DataFrame())
+df_clusters.to_csv('test.csv', mode='w', header=True, index=True)
+df_clusters.to_csv('test2.csv', mode='w', header=True, index=False)
+
 
 print([n/2 for n in range(5, 16)])
 
