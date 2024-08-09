@@ -74,8 +74,8 @@ class UnitClustering:
 
 
         self._max_cluster_size = max(cluster_size_list)
-        self.min_cluster_size = min(cluster_size_list)
-        self.mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
+        self._min_cluster_size = min(cluster_size_list)
+        self._mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
         return clusters
 
 
@@ -85,7 +85,7 @@ class UnitClustering:
         for mut in mutations:  # mutant type in a list of mutants
             layer = mut.get_layer()
             neuron = mut.get_neuron()
-            t = (layer, neuron, ) + tuple(mut.get_model().layers[layer].get_weights()[0][...,neuron],) + (mut.get_model().layers[layer].get_weights()[1][neuron],)
+            t = (layer, neuron, ) + tuple(mut.get_model().layers[layer].get_weights()[0][...,neuron].flatten(),) + tuple(mut.get_model().layers[layer].get_weights()[1][neuron].flatten(),)
             mut.set_tuple(t)
             if layer in mutant_layer_dict:
                 mutant_layer_dict[layer] += [mut]
@@ -103,7 +103,7 @@ class UnitClustering:
                     b = mutant_list[j]
                     nodes.append(i)
                     nodes.append(j)
-                    weights.append(distance.euclidean(a.get_tuple(), b.get_tuple()))
+                    weights.append([distance.euclidean(a.get_tuple(), b.get_tuple())])
             list_of_clusters += [[self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)]]
 
         cluster_size_list = []
@@ -116,8 +116,8 @@ class UnitClustering:
             list_of_mutant_clusters += temp
 
         self._max_cluster_size = max(cluster_size_list)
-        self.min_cluster_size = min(cluster_size_list)
-        self.mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
+        self._min_cluster_size = min(cluster_size_list)
+        self._mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
 
         return list_of_mutant_clusters
 

@@ -109,7 +109,7 @@ class Network:
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         #early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
+        model.fit(x_train, y_train, epochs=1, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
 
         model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.keras')
         print("Model saved")
@@ -137,7 +137,7 @@ class Network:
                        kernel_size=kernel_size,
                        strides=strides,
                        padding='same',
-                       use_bias=False,
+                       use_bias=True,
                        kernel_regularizer=l2(weight_decay)
                        )(x)
         layer = BatchNormalization()(layer)

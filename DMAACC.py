@@ -20,7 +20,7 @@ class DMAACC:
         self._threshold = 2
         self._mutation_percent = 0.1
         self._dataset = None
-        self._thresholds = [n/2 for n in range(6, 15)]
+        self._PH_threshold = 0.5
 
     def load_model(self, model_filename):
         self._model_filename = model_filename
@@ -56,8 +56,8 @@ class DMAACC:
     def set_dataset(self, dataset):
         self._dataset = dataset
 
-    def set_ParHAC_thresholds(self, threshold):
-        self._thresholds = threshold
+    def set_ParHAC_threshold(self, threshold):
+        self._PH_threshold = threshold
 
     def __get_outputs_count(self):
         return self._model.layers[-1].units
@@ -118,7 +118,7 @@ class DMAACC:
         print('Number of mutations: ' + str(len(mutations)))
         print('Average size of clusters per layer: ' + str(self._cluster_size))
         df_clusters.loc[len(df_clusters.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                           self._mutation_level, m_end - m_start, len(mutations), ms.get_cluster_amount(),
+                           self._mutation_level, m_end - m_start, len(mutations), len(clusters),
                            self._cluster_size, unit_clustering.get_max_cluster_size(),
                            unit_clustering.get_min_cluster_size(), unit_clustering.get_mean_cluster_size(),
                            c_end - c_start, ms.get_mutation_score(), ms_end - ms_start, ms_end - start]
@@ -144,17 +144,16 @@ class DMAACC:
                                                'Mutation_Score', 'MS_time', 'Total_time'])
 
             unit_clustering = UnitClustering(self._model)
-            for threshold in self._thresholds:
-                ms_start = time.time()
-                graph_clusters = unit_clustering.get_graph_clusters(mutations, threshold)
-                ms.set_clusters(graph_clusters)
-                ms.cluster_run()
-                ms_end = time.time()
-                df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(), len(graph_clusters),
-                                   'cluster', m_end-start, len(mutations), threshold, ms.get_cluster_amount(),
-                                   unit_clustering.get_max_cluster_size(), unit_clustering.get_min_cluster_size(),
-                                   unit_clustering.get_mean_cluster_size(), ms.get_cluster_mutation_score(),
-                                   ms_end-ms_start, (ms_end-ms_start)+(m_end-start)]
+            ms_start = time.time()
+            graph_clusters = unit_clustering.get_graph_clusters(mutations, self._PH_threshold)
+            ms.set_clusters(graph_clusters)
+            ms.cluster_run()
+            ms_end = time.time()
+            df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(), len(graph_clusters),
+                               'cluster', m_end-start, len(mutations), self._PH_threshold, ms.get_cluster_amount(),
+                               unit_clustering.get_max_cluster_size(), unit_clustering.get_min_cluster_size(),
+                               unit_clustering.get_mean_cluster_size(), ms.get_mutation_score(),
+                               ms_end-ms_start, (ms_end-ms_start)+(m_end-start)]
 
         # if 'neuron' in self._mutation_level:
         #     ms_start = time.time()
@@ -167,7 +166,7 @@ class DMAACC:
         #                        m_end - start, len(mutations), ms.get_mutation_score(), ms_end - ms_start,
         #                        (ms_end - ms_start) + (m_end - start)])
 
-        return [], df_cluster
+        return None, df_cluster
 
 
 
