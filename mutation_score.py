@@ -14,6 +14,7 @@ class MutationScore:
         self._num_of_classes = self._model.layers[-1].units
         self._correct_test_points = None
         self._mutation_score = None
+        self._killed_classes = None
         self._clusters = None
         self._cluster_amount = None
 
@@ -21,8 +22,14 @@ class MutationScore:
     def get_mutation_score(self):
         return self._mutation_score
 
+    def get_killed_classes(self):
+        return self._killed_classes
+
     def get_cluster_amount(self):
         return self._cluster_amount
+
+    def set_mutations(self, mutations):
+        self._mutations = mutations
 
     def set_clusters(self, clusters):
         self._clusters = clusters
@@ -78,9 +85,9 @@ class MutationScore:
     def run(self):
         x, y = self.get_correct_test_points()
         self._correct_test_points = [x, y]
-        kc = self.killed_classes()
-        print("Killed classes: " + str(kc))
-        self._mutation_score = kc / (len(self._mutations) * self._num_of_classes)
+        self._killed_classes = self.killed_classes()
+        print("Killed classes: " + str(self._killed_classes))
+        self._mutation_score = self._killed_classes / (len(self._mutations) * self._num_of_classes)
 
     def cluster_run(self):
         x, y = self.get_correct_test_points()

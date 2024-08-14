@@ -37,6 +37,9 @@ class Network:
     def get_model(self):
         return self._model
 
+    def get_nb_class(self):
+        return self._nb_classes
+
     def fcnn(self, x_train, y_train, x_test, y_test, nb_classes):
         #nb_classes = 10
         model = Sequential()
@@ -109,7 +112,7 @@ class Network:
         model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         #early_stopping = EarlyStopping(monitor='val_accuracy', patience=3, mode='max', verbose=1)
-        model.fit(x_train, y_train, epochs=1, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))  # , callbacks=[early_stopping])
 
         model.save('examples/' + self._dataset_name + '/resnet18-' + self._dataset_name + '.keras')
         print("Model saved")

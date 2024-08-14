@@ -2,6 +2,11 @@ from Mutant import Mutant
 import numpy as np
 import utils
 
+import gc
+
+import gc
+from keras.backend import clear_session
+
 
 class MutationOperator:
     def __init__(self):
@@ -74,7 +79,7 @@ class MutationOperator:
 
         return GF_model
 
-    def Change_Weight_Mutator(self, model, clusters, mutation_level='neuron', mutation_percent=0.1):
+    def Change_Weight_Mutator(self, model, model_name, clusters, mutation_level='neuron', mutation_percent=0.1):
         list_of_mutants = []
 
         if mutation_level == 'cluster':
@@ -100,6 +105,10 @@ class MutationOperator:
                 CW_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, CW_model, 'CW_Cluster', layer_index, cluster_indices))
                 self._mutant_number += 1
+                del CW_model
+                clear_session()
+                gc.collect()
+                print("Mutant number " + str(self._mutant_number))
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
@@ -138,10 +147,13 @@ class MutationOperator:
                         CW_model.layers[layer_index].set_weights(weights)
                         list_of_mutants.append(Mutant(self._mutant_number, CW_model, 'CW', layer_index, neuron_index))
                         self._mutant_number += 1
+                        del CW_model
+                        clear_session()
+                        gc.collect()
 
         return list_of_mutants
 
-    def Neuron_Activation_Inversion_Mutation(self, model, clusters, mutation_level='neuron'):
+    def Neuron_Activation_Inversion_Mutation(self, model, model_name, clusters, mutation_level='neuron'):
         list_of_mutants = []
 
         if mutation_level == 'cluster':
@@ -164,6 +176,9 @@ class MutationOperator:
                 NAI_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, NAI_model, 'NAI_Cluster', layer_index, cluster_indices))
                 self._mutant_number += 1
+                del NAI_model
+                clear_session()
+                gc.collect()
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
@@ -198,11 +213,14 @@ class MutationOperator:
                         NAI_model.layers[layer_index].set_weights(weights)
                         list_of_mutants.append(Mutant(self._mutant_number, NAI_model, 'NAI', layer_index, neuron_index))
                         self._mutant_number += 1
+                        del NAI_model
+                        clear_session()
+                        gc.collect()
 
         return list_of_mutants
 
 
-    def Neuron_Effect_Blocking_Mutation(self, model, clusters, mutation_level='neuron'):
+    def Neuron_Effect_Blocking_Mutation(self, model, model_name, clusters, mutation_level='neuron'):
         list_of_mutants = []
 
         if mutation_level == 'cluster':
@@ -226,6 +244,10 @@ class MutationOperator:
                     pass
                 NEB_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, NEB_model, 'NEB_Cluster', layer_index, cluster_indices))
+                self._mutant_number += 1
+                del NEB_model
+                clear_session()
+                gc.collect()
 
 
         elif mutation_level == 'neuron':
@@ -268,6 +290,9 @@ class MutationOperator:
                                 NEB_model.layers[layer_index].set_weights(weights)
                                 list_of_mutants.append(Mutant(self._mutant_number, NEB_model, 'NEB', layer_index, neuron_index))
                                 self._mutant_number += 1
+                                del NEB_model
+                                clear_session()
+                                gc.collect()
 
         return list_of_mutants
 
@@ -334,6 +359,7 @@ class MutationGenerator:
 
     def get_mutations(self, mutator_list):
         mutated_models = []
+        print("Mutation model: " + self._model_name)
 
         if 'GF' in mutator_list:
             GF_model = self._MO.Gaussian_Fuzzing_Mutator(self._model, self._clusters, self._mutation_level,
@@ -343,27 +369,48 @@ class MutationGenerator:
                           metrics=['accuracy'])
             mutated_models.append(GF_model)
         if 'CW' in mutator_list:
-            CW_models = self._MO.Change_Weight_Mutator(self._model, self._clusters, self._mutation_level, self._mutation_percent)
+            CW_models = self._MO.Change_Weight_Mutator(self._model, self._model_name, self._clusters, self._mutation_level, self._mutation_percent)
             for CW_mutant in CW_models:
                 CW_model = CW_mutant.get_model()
                 CW_model.compile(optimizer='adam',
                               loss='categorical_crossentropy',
                               metrics=['accuracy'])
                 mutated_models.append(CW_mutant)
+                del CW_model
+                del CW_mutant
+                clear_session()
+                gc.collect()
+            del CW_models
+            clear_session()
+            gc.collect()
         if 'NEB' in mutator_list:
-            NEB_models = self._MO.Neuron_Effect_Blocking_Mutation(self._model, self._clusters, self._mutation_level)
+            NEB_models = self._MO.Neuron_Effect_Blocking_Mutation(self._model, self._model_name, self._clusters, self._mutation_level)
             for NEB_mutant in NEB_models:
                 NEB_model = NEB_mutant.get_model()
                 NEB_model.compile(optimizer='adam',
                                loss='categorical_crossentropy',
                                metrics=['accuracy'])
                 mutated_models.append(NEB_mutant)
+                del NEB_model
+                del NEB_mutant
+                clear_session()
+                gc.collect()
+            del NEB_models
+            clear_session()
+            gc.collect()
         if 'NAI' in mutator_list:
-            NAI_models = self._MO.Neuron_Activation_Inversion_Mutation(self._model, self._clusters, self._mutation_level)
+            NAI_models = self._MO.Neuron_Activation_Inversion_Mutation(self._model, self._model_name, self._clusters, self._mutation_level)
             for NAI_mutant in NAI_models:
                 NAI_model = NAI_mutant.get_model()
                 NAI_model.compile(optimizer='adam',
                                loss='categorical_crossentropy',
                                metrics=['accuracy'])
                 mutated_models.append(NAI_mutant)
+                del NAI_model
+                del NAI_mutant
+                clear_session()
+                gc.collect()
+            del NAI_models
+            clear_session()
+            gc.collect()
         return mutated_models
