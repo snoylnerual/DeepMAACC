@@ -22,6 +22,7 @@ class OBO:
         self._max_cluster_size = None
         self._min_cluster_size = None
         self._mean_cluster_size = None
+        self._mutant_number = 0
 
     def get_max_cluster_size(self):
         return self._max_cluster_size
@@ -59,6 +60,34 @@ class OBO:
                         weights[0][input_neuron_indices, neuron_index] = 0
 
         model.layers[layer_index].set_weights(weights)
+        self._mutant_number += 1
+        print(mo_type + "Mutant number " + str(self._mutant_number))
+
+
+    def mutate_cluster(self, model, layer_name, layer_index, cluster_indices, mo_type, mutation_percent):
+        weights = model.layers[layer_index].get_weights()
+
+        if mo_type == 'CW':
+            if layer_name == 'Conv2D':
+                weights[0][:, :, :, cluster_indices] *= (mutation_percent + 1)
+                weights[1][cluster_indices] *= (mutation_percent + 1)
+            elif layer_name == 'Dense':
+                weights[0][:, cluster_indices] *= (mutation_percent + 1)
+                weights[1][cluster_indices] *= (mutation_percent + 1)
+        elif mo_type == 'NAI':
+            if layer_name == 'Conv2D':
+                weights[0][:, :, :, cluster_indices] *= -1
+            elif layer_name == 'Dense':
+                weights[0][:, cluster_indices] *= -1
+        elif mo_type == 'NEB':
+            if layer_name == 'Conv2D':
+                weights[0][:, :, :, cluster_indices] = 0
+            elif layer_name == 'Dense':
+                weights[0][..., cluster_indices] *= 0
+
+        model.layers[layer_index].set_weights(weights)
+        self._mutant_number += 1
+        print(mo_type + "Mutant number " + str(self._mutant_number))
 
     def get_one_graph_clusters(self, mutant_layer_dict, threshold):
         # for mut in mutations:  # mutant type in a list of mutants
@@ -137,10 +166,11 @@ class ClusterArray(ctypes.Structure):
                 ("length", ctypes.c_int)]
 
 class MiniMutant:
-    def __init__(self, tup, ln, nn, mo_type):
+    def __init__(self, tup, ln, nn, kc, mo_type):
         self._tuple = tup
         self._layer_num = ln
         self._neuron_num = nn
+        self._killed_classes = kc
         self._mo_type = mo_type
 
     def get_tuple(self):
@@ -151,3 +181,6 @@ class MiniMutant:
 
     def get_neuron_num(self):
         return self._neuron_num
+
+    def get_killed_classes(self):
+        return self._killed_classes

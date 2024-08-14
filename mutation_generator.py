@@ -105,10 +105,10 @@ class MutationOperator:
                 CW_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, CW_model, 'CW_Cluster', layer_index, cluster_indices))
                 self._mutant_number += 1
-                del CW_model
-                clear_session()
-                gc.collect()
-                print("Mutant number " + str(self._mutant_number))
+                # del CW_model
+                # clear_session()
+                # gc.collect()
+                print("CW Mutant number " + str(self._mutant_number))
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
@@ -147,9 +147,10 @@ class MutationOperator:
                         CW_model.layers[layer_index].set_weights(weights)
                         list_of_mutants.append(Mutant(self._mutant_number, CW_model, 'CW', layer_index, neuron_index))
                         self._mutant_number += 1
-                        del CW_model
-                        clear_session()
-                        gc.collect()
+                        # del CW_model
+                        # clear_session()
+                        # gc.collect()
+                        print("CW Mutant number " + str(self._mutant_number))
 
         return list_of_mutants
 
@@ -176,9 +177,9 @@ class MutationOperator:
                 NAI_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, NAI_model, 'NAI_Cluster', layer_index, cluster_indices))
                 self._mutant_number += 1
-                del NAI_model
-                clear_session()
-                gc.collect()
+                # del NAI_model
+                # clear_session()
+                # gc.collect()
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
@@ -213,9 +214,9 @@ class MutationOperator:
                         NAI_model.layers[layer_index].set_weights(weights)
                         list_of_mutants.append(Mutant(self._mutant_number, NAI_model, 'NAI', layer_index, neuron_index))
                         self._mutant_number += 1
-                        del NAI_model
-                        clear_session()
-                        gc.collect()
+                        # del NAI_model
+                        # clear_session()
+                        # gc.collect()
 
         return list_of_mutants
 
@@ -245,9 +246,9 @@ class MutationOperator:
                 NEB_model.layers[layer_index].set_weights(weights)
                 list_of_mutants.append(Mutant(self._mutant_number, NEB_model, 'NEB_Cluster', layer_index, cluster_indices))
                 self._mutant_number += 1
-                del NEB_model
-                clear_session()
-                gc.collect()
+                # del NEB_model
+                # clear_session()
+                # gc.collect()
 
 
         elif mutation_level == 'neuron':
@@ -290,9 +291,9 @@ class MutationOperator:
                                 NEB_model.layers[layer_index].set_weights(weights)
                                 list_of_mutants.append(Mutant(self._mutant_number, NEB_model, 'NEB', layer_index, neuron_index))
                                 self._mutant_number += 1
-                                del NEB_model
-                                clear_session()
-                                gc.collect()
+                                # del NEB_model
+                                # clear_session()
+                                # gc.collect()
 
         return list_of_mutants
 
@@ -376,13 +377,13 @@ class MutationGenerator:
                               loss='categorical_crossentropy',
                               metrics=['accuracy'])
                 mutated_models.append(CW_mutant)
-                del CW_model
-                del CW_mutant
-                clear_session()
-                gc.collect()
-            del CW_models
-            clear_session()
-            gc.collect()
+            #     del CW_model
+            #     del CW_mutant
+            #     clear_session()
+            #     gc.collect()
+            # del CW_models
+            # clear_session()
+            # gc.collect()
         if 'NEB' in mutator_list:
             NEB_models = self._MO.Neuron_Effect_Blocking_Mutation(self._model, self._model_name, self._clusters, self._mutation_level)
             for NEB_mutant in NEB_models:
@@ -391,13 +392,13 @@ class MutationGenerator:
                                loss='categorical_crossentropy',
                                metrics=['accuracy'])
                 mutated_models.append(NEB_mutant)
-                del NEB_model
-                del NEB_mutant
-                clear_session()
-                gc.collect()
-            del NEB_models
-            clear_session()
-            gc.collect()
+            #     del NEB_model
+            #     del NEB_mutant
+            #     clear_session()
+            #     gc.collect()
+            # del NEB_models
+            # clear_session()
+            # gc.collect()
         if 'NAI' in mutator_list:
             NAI_models = self._MO.Neuron_Activation_Inversion_Mutation(self._model, self._model_name, self._clusters, self._mutation_level)
             for NAI_mutant in NAI_models:
@@ -406,11 +407,11 @@ class MutationGenerator:
                                loss='categorical_crossentropy',
                                metrics=['accuracy'])
                 mutated_models.append(NAI_mutant)
-                del NAI_model
-                del NAI_mutant
-                clear_session()
-                gc.collect()
-            del NAI_models
-            clear_session()
-            gc.collect()
+            #     del NAI_model
+            #     del NAI_mutant
+            #     clear_session()
+            #     gc.collect()
+            # del NAI_models
+            # clear_session()
+            # gc.collect()
         return mutated_models

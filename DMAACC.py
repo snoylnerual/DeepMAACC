@@ -174,6 +174,156 @@ class DMAACC:
 
         return df_cluster
 
+    def run_one_by_one_v(self):
+        obo = OBO()
+        model_utils = utils.ModelUtils()
+        nb_classes = self._dataset.get_nb_classes()
+        ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
+                           self._dataset.get_dataset_name(), self._mutation_level)
+
+        mutant_layer_dict = {}
+        m_time = 0
+        ms_time = 0
+        for layer_index, layer in enumerate(self._model.layers):
+            weights = layer.get_weights().copy()
+
+            if not (len(weights) == 0):  # weights with length of zero shouldn't be edited
+                layer_name = type(layer).__name__
+                CONV2D = layer_name == 'Conv2D'
+                DENSE = layer_name == 'Dense'
+                enum = 0
+                if CONV2D:
+                    enum = weights[0].shape[3]
+                elif DENSE:
+                    enum = weights[0].shape[1]
+                else:
+                    print("Layer type: " + str(layer_name) + ' (not mutated)')
+                    pass
+                for neuron_index in range(enum):
+                    for mo_type in ['CW', 'NAI', 'NEB']:
+                        # gc.collect()
+                        # mutant_model = model_utils.model_copy(self._model, '')
+                        # this will take the model and turn it into one mutant based on the neuron
+                        m_start = time.time()
+                        obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
+                                       self._mutation_percent)
+                        m_end = time.time()
+                        m_time += m_end - m_start
+                        t = tuple((layer_index, neuron_index))
+                        # do by layer bc we cluster by layer
+                        # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
+                        ms.set_mutations([self])
+                        ms_start = time.time()
+                        ms.run()
+                        killed_classes = ms.get_killed_classes()
+                        ms_end = time.time()
+                        ms_time += ms_end - ms_start
+                        if layer_index in mutant_layer_dict:
+                            mutant_layer_dict[layer_index] += [
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                        else:
+                            mutant_layer_dict[layer_index] = [
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                        # resets
+                        layer.set_weights(weights)
+
+        # To get mutation score I must
+        #   get the killed classes from each Minimutant, divide it by nb_classes,
+        #   and then add that for each Minimutant for a model.
+
+        ms_mutants_kc = 0
+        amt = 0
+        mutation_len = 0
+        for key, value in mutant_layer_dict.items():
+            amt += len(value)
+            for minimutant in value:
+                ms_mutants_kc += minimutant.get_killed_classes()
+
+        mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+        print('Mutation Score' + str(mutation_score_n))
+
+
+        df_vanilla = pd.DataFrame(
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+                     'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
+        df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
+                                                 self._mutation_level, m_time, amt,
+                                                 ms.get_mutation_score(), ms_time, m_time + ms_time]
+
+        return df_vanilla
+
+    def run_one_by_one_a1(self):
+        obo = OBO()
+        ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
+                           self._dataset.get_dataset_name(), self._mutation_level)
+
+        mutant_layer_dict = {}
+        mutant_num = 0
+        mutation_score = 0
+        killed_classes = 0
+        m_time = 0
+        c_time = 0
+        ms_time = 0
+
+        unit_clustering = UnitClustering(self._model)
+        c_start = time.time()
+        clusters = unit_clustering.get_clusters(self._cluster_size)
+        c_end = time.time()
+        c_time = c_end - c_start
+
+        for cluster in clusters:
+            li = cluster.get_layer_index()
+            weights = self._model.layers[li].get_weights().copy()
+            for mo_type in ['CW', 'NAI', 'NEB']:
+                m_start = time.time()
+                obo.mutate_cluster(self._model, type(self._model.layers[li]).__name__, li, cluster, mo_type, self._mutation_percent)
+                m_end = time.time()
+                m_time += m_end - m_start
+                t = tuple((li, cluster))
+                ms.set_mutations([self])
+                ms_start = time.time()
+                ms.run()
+                killed_classes = ms.get_killed_classes()
+                ms_end = time.time()
+                ms_time += ms_end - ms_start
+                if li in mutant_layer_dict:
+                    mutant_layer_dict[li] += [
+                        MiniMutant(t, li, cluster, killed_classes, mo_type)]
+                else:
+                    mutant_layer_dict[li] = [
+                        MiniMutant(t, li, cluster, killed_classes, mo_type)]
+                # resets
+                self._model.layers[li].set_weights(weights)
+
+        ms_mutants_kc = 0
+        amt = 0
+        mutation_len = 0
+        for key, value in mutant_layer_dict.items():
+            amt += len(value)
+            for minimutant in value:
+                ms_mutants_kc += minimutant.get_killed_classes()
+
+        mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+        print('Mutation Score' + str(mutation_score_n))
+
+
+        df_clusters = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
+                                           'Mutate_time', 'Number_of_Mutants', 'ParHAC_Threshold',
+                                           'Number_of_Clusters', 'Max_Cluster_Sz', 'Min_Cluster_Sz',
+                                           'Mean_Cluster_Sz', 'Cluster_time',
+                                           'Mutation_Score', 'MS_time', 'Total_time'])
+        df_clusters.loc[len(df_clusters.index)] = [self._model_filename, self._dataset.get_dataset_name(),
+                                                 amt,
+                                                 'cluster', m_time, mutation_len, self._PH_threshold,
+                                                 ms.get_cluster_amount(),
+                                                 obo.get_max_cluster_size(),
+                                                 obo.get_min_cluster_size(),
+                                                 obo.get_mean_cluster_size(), c_time,
+                                                 mutation_score_n,
+                                                 ms_time, m_time + c_time + ms_time]
+
+        return df_clusters
+
 
     def run_one_by_one_a2(self):
         # DMAACC receives one model at a time, and we must mutate one neuron at a time to do this
@@ -196,6 +346,9 @@ class DMAACC:
         mutant_num = 0
         mutation_score = 0
         killed_classes = 0
+        m_time = 0
+        c_time = 0
+        ms_time = 0
         start = time.time()
         #TODO: if the process cant handle more than one model, then I will have to change this...
         for layer_index, layer in enumerate(self._model.layers):
@@ -224,15 +377,21 @@ class DMAACC:
                         # gc.collect()
                         # mutant_model = model_utils.model_copy(self._model, '')
                         # this will take the model and turn it into one mutant based on the neuron
+                        m_start = time.time()
                         obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type, self._mutation_percent)
+                        m_end = time.time()
+                        m_time += m_end - m_start
                         t = (layer_index, neuron_index,) + tuple(
                             self._model.layers[layer].get_weights()[0][..., neuron_index].flatten(), ) + tuple(
                             self._model.layers[layer].get_weights()[1][neuron_index].flatten(), )
                         # do by layer bc we cluster by layer
                         #TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
                         ms.set_mutations([self])
+                        ms_start = time.time()
                         ms.run()
                         killed_classes = ms.get_killed_classes()
+                        ms_end = time.time()
+                        ms_time += ms_end - ms_start
                         if layer_index in mutant_layer_dict:
                             mutant_layer_dict[layer_index] += [MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
                         else:
@@ -246,6 +405,8 @@ class DMAACC:
         # now cluster this one model
         c_start = time.time()
         g_clusters = obo.get_one_graph_clusters(mutant_layer_dict, self._PH_threshold)
+        c_end = time.time()
+        c_time += c_end - c_start
         # g_clusters should hold a list the size of the mutable layers, and within each
         #   list, it will have lists of the different clusters
         # then mutation score
@@ -259,8 +420,12 @@ class DMAACC:
                 m = np.random.choice(cluster)
                 ms_mutants += [m.get_killed_classes()]
 
-        ms = sum(ms_mutants) / (len(ms_mutants) * self._dataset.get_nb_classes())
-        print('Mutation Score' + str(ms))
+        mutation_score_n = sum(ms_mutants) / (len(ms_mutants) * self._dataset.get_nb_classes())
+        print('Mutation Score' + str(mutation_score_n))
+
+        mutation_len = 0
+        for l in mutant_layer_dict.values():
+            mutation_len += len(l)
 
         df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
                                            'Mutate_time', 'Number_of_Mutants', 'ParHAC_Threshold',
@@ -268,14 +433,14 @@ class DMAACC:
                                            'Mean_Cluster_Sz', 'Cluster_time',
                                            'Mutation_Score', 'MS_time', 'Total_time'])
         df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                                                 len(graph_clusters),
-                                                 'cluster', m_end - start, len(mutations), self._PH_threshold,
+                                                 len(g_clusters),
+                                                 'cluster', m_time, mutation_len, self._PH_threshold,
                                                  ms.get_cluster_amount(),
                                                  obo.get_max_cluster_size(),
                                                  obo.get_min_cluster_size(),
-                                                 obo.get_mean_cluster_size(), c_end - c_start,
-                                                 ms.get_mutation_score(),
-                                                 ms_end - ms_start, (ms_end - ms_start) + (m_end - start)]
+                                                 obo.get_mean_cluster_size(), c_time,
+                                                 mutation_score_n,
+                                                 ms_time, m_time+c_time+ms_time]
 
         return df_cluster
 
