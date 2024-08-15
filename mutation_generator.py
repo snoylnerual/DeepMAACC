@@ -95,11 +95,6 @@ class MutationOperator:
                 elif layer_name == 'Dense':
                     weights[0][:, cluster_indices] *= (mutation_percent+1)
                     weights[1][cluster_indices] *= (mutation_percent + 1)
-                # elif layer_name == 'Embedding':
-                #     weights[0][:, cluster_indices] *= (mutation_percent+1)
-                # elif layer_name == 'LSTM':
-                #     weights[0][:, cluster_indices] *= (mutation_percent + 1)
-                #     weights[2][cluster_indices] *= (mutation_percent + 1)
                 else:
                     pass
                 CW_model.layers[layer_index].set_weights(weights)
@@ -112,27 +107,22 @@ class MutationOperator:
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
-                weights = layer.get_weights()
-                if not (len(weights) == 0):  # weights with length of zero shouldn't be edited
+                weights_original = layer.get_weights().copy()
+                if not (len(weights_original) == 0):  # weights with length of zero shouldn't be edited
                     layer_name = type(layer).__name__
                     CONV2D = layer_name == 'Conv2D'
                     DENSE = layer_name == 'Dense'
-                    # EMBEDDING = layer_name == 'Embedding'
-                    # LSTM = layer_name == 'LSTM'
                     enum = 0
                     if CONV2D:
-                        enum = weights[0].shape[3]
+                        enum = weights_original[0].shape[3]
                     elif DENSE:
-                        enum = weights[0].shape[1]
-                    # elif EMBEDDING:
-                    #     enum = weights[0].shape[1]
-                    # elif LSTM:
-                    #     enum = weights[0].shape[1]
+                        enum = weights_original[0].shape[1]
                     else:
                         print("Layer type: " + str(layer_name) + ' (not mutated)')
                         pass
                     for neuron_index in range(enum):
                         CW_model = self._model_utils.model_copy(model, 'CW')
+                        weights = CW_model.layers[layer_index].get_weights()
                         if CONV2D:
                             weights[0][:, :, :, neuron_index] *= (mutation_percent + 1)
                             weights[1][neuron_index] *= (mutation_percent + 1)
@@ -168,10 +158,6 @@ class MutationOperator:
                     weights[0][:, :, :, cluster_indices] *= -1
                 elif layer_name == 'Dense':
                     weights[0][:, cluster_indices] *= -1
-                # elif layer_name == 'Embedding':
-                #     weights[0][:, cluster_indices] *= -1
-                # elif layer_name == 'LSTM':
-                #     weights[0][:, cluster_indices] *= -1
                 else:
                     pass
                 NAI_model.layers[layer_index].set_weights(weights)
@@ -180,11 +166,12 @@ class MutationOperator:
                 # del NAI_model
                 # clear_session()
                 # gc.collect()
+                print("NAI Mutant number " + str(self._mutant_number))
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
-                weights = layer.get_weights()
-                if not (len(weights) == 0):  # weights will have length of zero if they shouldn't be edited
+                weights_original = layer.get_weights().copy()
+                if not (len(weights_original) == 0):  # weights will have length of zero if they shouldn't be edited
                     layer_name = type(layer).__name__
                     CONV2D = layer_name == 'Conv2D'
                     DENSE = layer_name == 'Dense'
@@ -192,17 +179,14 @@ class MutationOperator:
                     # LSTM = layer_name == 'LSTM'
                     enum = 0
                     if CONV2D:
-                        enum = weights[0].shape[3]
+                        enum = weights_original[0].shape[3]
                     elif DENSE:
-                        enum = weights[0].shape[1]
-                    # elif EMBEDDING:
-                    #     enum = weights[0].shape[1]
-                    # elif LSTM:
-                    #     enum = weights[0].shape[1]
+                        enum = weights_original[0].shape[1]
                     else:
                         pass
                     for neuron_index in range(enum):
                         NAI_model = self._model_utils.model_copy(model, 'NAI')
+                        weights = NAI_model.layers[layer_index].get_weights()
                         if CONV2D:
                             weights[0][:, :, :, neuron_index] *= -1
                         elif DENSE:
@@ -217,6 +201,7 @@ class MutationOperator:
                         # del NAI_model
                         # clear_session()
                         # gc.collect()
+                        print("NAI Mutant number " + str(self._mutant_number))
 
         return list_of_mutants
 
@@ -249,12 +234,12 @@ class MutationOperator:
                 # del NEB_model
                 # clear_session()
                 # gc.collect()
-
+                print("NEB Mutant number " + str(self._mutant_number))
 
         elif mutation_level == 'neuron':
             for layer_index, layer in enumerate(model.layers):
-                weights = layer.get_weights()
-                if not (len(weights) == 0):  # weights will have length of zero if they shouldn't be edited
+                weights_original = layer.get_weights().copy()
+                if not (len(weights_original) == 0):  # weights will have length of zero if they shouldn't be edited
                     layer_name = type(layer).__name__
                     CONV2D = layer_name == 'Conv2D'
                     DENSE = layer_name == 'Dense'
@@ -262,9 +247,9 @@ class MutationOperator:
                     # LSTM = layer_name == 'LSTM'
                     enum = 0
                     if CONV2D:
-                        enum = weights[0].shape[3]
+                        enum = weights_original[0].shape[3]
                     elif DENSE:
-                        enum = weights[0].shape[1]
+                        enum = weights_original[0].shape[1]
                     # elif EMBEDDING:
                     #     enum = weights[0].shape[1]
                     # elif LSTM:
@@ -273,6 +258,7 @@ class MutationOperator:
                         pass
                     for neuron_index in range(enum):
                         NEB_model = self._model_utils.model_copy(model, 'NEB')
+                        weights = NEB_model.layers[layer_index].get_weights()
                         # temp_b = weights[1][neuron_index]
                         for val in weights:
                             val_shape = val.shape
@@ -294,6 +280,7 @@ class MutationOperator:
                                 # del NEB_model
                                 # clear_session()
                                 # gc.collect()
+                                print("NEB Mutant number " + str(self._mutant_number))
 
         return list_of_mutants
 

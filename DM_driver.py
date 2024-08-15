@@ -87,12 +87,13 @@ if __name__ == "__main__":
             for model_n in model_l:
                 dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                 model_current = dmaacc_run.get_model()
-                for i in range(15):
+                for i in range(2):
                     dmaacc_run.set_mutation_level('neuron')
-                    if arch_type == 'all':
-                        df_clusters = dmaacc_run.run_vanilla()
-                    elif arch_type == 'one_by_one':
-                        df_clusters = dmaacc_run.run_one_by_one_v()
+                    #if arch_type == 'all':
+
+                    #elif arch_type == 'one_by_one':
+                    df_clusters = dmaacc_run.run_one_by_one_v()
+                    df_clusters = dmaacc_run.run_vanilla()
                     if os.path.isfile(csvfile):
                         df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                     else:

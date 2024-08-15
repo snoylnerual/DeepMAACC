@@ -64,8 +64,9 @@ class OBO:
         return model
 
 
-    def mutate_cluster(self, model, layer_name, layer_index, cluster_indices, mo_type, mutation_percent):
+    def mutate_cluster(self, model, layer_name, layer_index, cluster, mo_type, mutation_percent):
         weights = model.layers[layer_index].get_weights()
+        cluster_indices = np.array(cluster.get_unit_indices())
 
         if mo_type == 'CW':
             if layer_name == 'Conv2D':

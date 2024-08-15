@@ -71,10 +71,9 @@ class DMAACC:
         df_vanilla = pd.DataFrame(
             columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
                      'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
-        clusters = []
         start = time.time()
         m_start = time.time()
-        mg = MutationGenerator(self._model_filename, self._model, clusters, self._mutation_level)
+        mg = MutationGenerator(self._model_filename, self._model, [], self._mutation_level)
         mg.set_mutation_percent(self._mutation_percent)
         mutations = mg.get_mutations(self._mutator_list)  # this is M'
         m_end = time.time()
@@ -88,7 +87,7 @@ class DMAACC:
                              self._mutation_level, m_end - m_start, len(mutations),
                              ms.get_mutation_score(), ms_end - ms_start, ms_end - start]
 
-        del self._model, mg, mutations, self._dataset, ms
+        del mg, mutations, ms
         clear_session()
         gc.collect()
 
@@ -132,7 +131,7 @@ class DMAACC:
                            unit_clustering.get_min_cluster_size(), unit_clustering.get_mean_cluster_size(),
                            c_end - c_start, ms.get_mutation_score(), ms_end - ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
 
-        del self._model, unit_clustering, clusters, mg, mutations, self._dataset, ms
+        del unit_clustering, clusters, mg, mutations, ms
         clear_session()
         gc.collect()
 
@@ -170,7 +169,7 @@ class DMAACC:
                                unit_clustering.get_mean_cluster_size(), c_end-c_start, ms.get_mutation_score(),
                                ms_end-ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
 
-        del self._model, unit_clustering, graph_clusters, mg, mutations, self._dataset, ms
+        del unit_clustering, graph_clusters, mg, mutations, ms
         clear_session()
         gc.collect()
 
@@ -213,7 +212,7 @@ class DMAACC:
                         # I think the errors are coming from the fact that the mutated model is already used to find the
                         #   'correct' points, so that means the incorrect predictions are filtered out.
                         self._model = obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
-                                       self._mutation_percent)
+                                                     self._mutation_percent)
                         m_end = time.time()
                         m_time += m_end - m_start
                         t = tuple((layer_index, neuron_index))
@@ -258,9 +257,9 @@ class DMAACC:
                      'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
         df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
                                                  self._mutation_level, m_time, amt,
-                                                 ms.get_mutation_score(), ms_time, m_time + ms_time]
+                                                 mutation_score_n, ms_time, m_time + ms_time]
 
-        del obo, ms, original_x, original_y, weights, layer, self._model, mutant_layer_dict
+        del obo, ms, original_x, original_y, weights, layer, mutant_layer_dict
         clear_session()
         gc.collect()
 
@@ -338,7 +337,7 @@ class DMAACC:
                                                  mutation_score_n,
                                                  ms_time, m_time + c_time + ms_time]
 
-        del obo, ms, original_x, original_y, unit_clustering, clusters, weights, cluster, self._model, mutant_layer_dict
+        del obo, ms, original_x, original_y, unit_clustering, clusters, weights, cluster, mutant_layer_dict
         clear_session()
         gc.collect()
 
@@ -465,7 +464,7 @@ class DMAACC:
                                                  mutation_score_n,
                                                  ms_time, m_time+c_time+ms_time]
 
-        del obo, ms, original_x, original_y, g_clusters, layer, weights, cluster, self._model, mutant_layer_dict, mutant_list, m
+        del obo, ms, original_x, original_y, g_clusters, layer, weights, cluster, mutant_layer_dict, mutant_list, m
         clear_session()
         gc.collect()
 
