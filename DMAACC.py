@@ -8,6 +8,7 @@ import pandas as pd
 import time
 
 from one_by_one import OBO, MiniMutant
+from keras.backend import clear_session
 import utils
 import gc
 
@@ -87,6 +88,10 @@ class DMAACC:
                              self._mutation_level, m_end - m_start, len(mutations),
                              ms.get_mutation_score(), ms_end - ms_start, ms_end - start]
 
+        del self._model, mg, mutations, self._dataset, ms
+        clear_session()
+        gc.collect()
+
         return df_vanilla
 
     def run_approach_1(self):
@@ -127,6 +132,10 @@ class DMAACC:
                            unit_clustering.get_min_cluster_size(), unit_clustering.get_mean_cluster_size(),
                            c_end - c_start, ms.get_mutation_score(), ms_end - ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
 
+        del self._model, unit_clustering, clusters, mg, mutations, self._dataset, ms
+        clear_session()
+        gc.collect()
+
         return df_clusters
 
     def run_approach_2(self):
@@ -160,6 +169,10 @@ class DMAACC:
                                unit_clustering.get_max_cluster_size(), unit_clustering.get_min_cluster_size(),
                                unit_clustering.get_mean_cluster_size(), c_end-c_start, ms.get_mutation_score(),
                                ms_end-ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
+
+        del self._model, unit_clustering, graph_clusters, mg, mutations, self._dataset, ms
+        clear_session()
+        gc.collect()
 
         return df_cluster
 
@@ -247,6 +260,10 @@ class DMAACC:
                                                  self._mutation_level, m_time, amt,
                                                  ms.get_mutation_score(), ms_time, m_time + ms_time]
 
+        del obo, ms, original_x, original_y, weights, layer, self._model, mutant_layer_dict
+        clear_session()
+        gc.collect()
+
         return df_vanilla
 
     def run_one_by_one_a1(self):
@@ -320,6 +337,10 @@ class DMAACC:
                                                  obo.get_mean_cluster_size(), c_time,
                                                  mutation_score_n,
                                                  ms_time, m_time + c_time + ms_time]
+
+        del obo, ms, original_x, original_y, unit_clustering, clusters, weights, cluster, self._model, mutant_layer_dict
+        clear_session()
+        gc.collect()
 
         return df_clusters
 
@@ -416,9 +437,10 @@ class DMAACC:
         #   and then add that for each Minimutant for a model.
 
         ms_mutants = []
-        for layer_cluster_list in g_clusters:
+        for layer_cluster_list, mutant_list in zip(g_clusters, mutant_layer_dict.values()):
             for cluster in layer_cluster_list:
                 m = np.random.choice(cluster)
+                m = mutant_list[m]
                 ms_mutants += [m.get_killed_classes()]
 
         mutation_score_n = sum(ms_mutants) / (len(ms_mutants) * self._dataset.get_nb_classes())
@@ -442,6 +464,10 @@ class DMAACC:
                                                  obo.get_mean_cluster_size(), c_time,
                                                  mutation_score_n,
                                                  ms_time, m_time+c_time+ms_time]
+
+        del obo, ms, original_x, original_y, g_clusters, layer, weights, cluster, self._model, mutant_layer_dict, mutant_list, m
+        clear_session()
+        gc.collect()
 
         return df_cluster
 
