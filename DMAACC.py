@@ -161,21 +161,10 @@ class DMAACC:
                                unit_clustering.get_mean_cluster_size(), c_end-c_start, ms.get_mutation_score(),
                                ms_end-ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
 
-        # if 'neuron' in self._mutation_level:
-        #     ms_start = time.time()
-        #     df_vanilla = pd.DataFrame(
-        #         columns=['Model_Type', 'Dataset', 'Mutatable_Layers', 'Mutation_Level', 'Mutate_time',
-        #                  'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
-        #     ms.run()
-        #     ms_end = time.time()
-        #     df_vanilla.concat([self._model_filename, self._dataset.get_dataset_name(), 'neuron',
-        #                        m_end - start, len(mutations), ms.get_mutation_score(), ms_end - ms_start,
-        #                        (ms_end - ms_start) + (m_end - start)])
-
         return df_cluster
 
     def run_one_by_one_v(self):
-        obo = OBO()
+        obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
         model_utils = utils.ModelUtils()
         nb_classes = self._dataset.get_nb_classes()
         ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
@@ -184,6 +173,9 @@ class DMAACC:
         mutant_layer_dict = {}
         m_time = 0
         ms_time = 0
+
+        original_x, original_y = ms.get_correct_test_points()
+
         for layer_index, layer in enumerate(self._model.layers):
             weights = layer.get_weights().copy()
 
@@ -205,16 +197,21 @@ class DMAACC:
                         # mutant_model = model_utils.model_copy(self._model, '')
                         # this will take the model and turn it into one mutant based on the neuron
                         m_start = time.time()
-                        obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
+                        # I think the errors are coming from the fact that the mutated model is already used to find the
+                        #   'correct' points, so that means the incorrect predictions are filtered out.
+                        self._model = obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
                                        self._mutation_percent)
                         m_end = time.time()
                         m_time += m_end - m_start
                         t = tuple((layer_index, neuron_index))
                         # do by layer bc we cluster by layer
                         # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
+                        self._model.compile(optimizer='adam',
+                                         loss='categorical_crossentropy',
+                                         metrics=['accuracy'])
                         ms.set_mutations([self])
                         ms_start = time.time()
-                        ms.run()
+                        ms.run_obo(original_x, original_y)
                         killed_classes = ms.get_killed_classes()
                         ms_end = time.time()
                         ms_time += ms_end - ms_start
@@ -253,7 +250,7 @@ class DMAACC:
         return df_vanilla
 
     def run_one_by_one_a1(self):
-        obo = OBO()
+        obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'cluster')
         ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
                            self._dataset.get_dataset_name(), self._mutation_level)
 
@@ -264,6 +261,8 @@ class DMAACC:
         m_time = 0
         c_time = 0
         ms_time = 0
+
+        original_x, original_y = ms.get_correct_test_points()
 
         unit_clustering = UnitClustering(self._model)
         c_start = time.time()
@@ -282,7 +281,7 @@ class DMAACC:
                 t = tuple((li, cluster))
                 ms.set_mutations([self])
                 ms_start = time.time()
-                ms.run()
+                ms.run_obo(original_x, original_y)
                 killed_classes = ms.get_killed_classes()
                 ms_end = time.time()
                 ms_time += ms_end - ms_start
@@ -336,11 +335,13 @@ class DMAACC:
         # the mutation score by clusters will just take the mutation score of that single cluster
 
 
-        obo = OBO()
+        obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
         model_utils = utils.ModelUtils()
         nb_classes = self._dataset.get_nb_classes()
         ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
                            self._dataset.get_dataset_name(), self._mutation_level)
+
+        original_x, original_y = ms.get_correct_test_points()
 
         mutant_layer_dict = {}
         mutant_num = 0
@@ -388,7 +389,7 @@ class DMAACC:
                         #TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
                         ms.set_mutations([self])
                         ms_start = time.time()
-                        ms.run()
+                        ms.run_obo(original_x, original_y)
                         killed_classes = ms.get_killed_classes()
                         ms_end = time.time()
                         ms_time += ms_end - ms_start

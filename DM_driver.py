@@ -67,14 +67,18 @@ if __name__ == "__main__":
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
-                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
-                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
-                      ['resnet18-cifar10.keras'],
-                      ['resnet18-cifar100.keras'],
-                      ['resnet18-svhn.keras']]
-        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']  #
+        model_list = [['fcnn-mnist.keras']]
+            # ['resnet18-cifar10.keras'],
+            #           ['resnet18-cifar100.keras'],
+            #           ['resnet18-svhn.keras']]
+                      #['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      # ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      # ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      # ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      # ['resnet18-cifar10.keras'],
+                      # ['resnet18-cifar100.keras'],
+                      # ['resnet18-svhn.keras']]
+        dataset_list = ['mnist']#, 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']  #
 
         csvfile = 'vanilla_experiments.csv'
         for ds, model_l in zip(dataset_list, model_list):

@@ -113,4 +113,11 @@ class MutationScore:
         print('Number of clusters: ' + str(cluster_amount))
         print("Mutation score: " + str(self._mutation_score))
 
+    def run_obo(self, x, y):
+        # x, y = self.get_correct_test_points()
+        self._correct_test_points = [x, y]
+        self._killed_classes = self.killed_classes()
+        print("Killed classes: " + str(self._killed_classes))
+        self._mutation_score = self._killed_classes / (len(self._mutations) * self._num_of_classes)
+
 

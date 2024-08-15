@@ -7,10 +7,9 @@ import numpy as np
 
 
 class OBO:
-    def __init__(self, model_name, model, mutations, dataset, dataset_name, mutation_level):
+    def __init__(self, model_name, model, dataset, dataset_name, mutation_level):
         self._model_name = model_name
         self._model = model
-        self._mutations = mutations
         self._dataset = dataset
         self._dataset_name = dataset_name
         self._mutation_level = mutation_level
@@ -62,6 +61,7 @@ class OBO:
         model.layers[layer_index].set_weights(weights)
         self._mutant_number += 1
         print(mo_type + "Mutant number " + str(self._mutant_number))
+        return model
 
 
     def mutate_cluster(self, model, layer_name, layer_index, cluster_indices, mo_type, mutation_percent):
