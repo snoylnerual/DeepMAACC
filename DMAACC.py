@@ -321,21 +321,18 @@ class DMAACC:
         mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
 
-
-        df_clusters = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
-                                           'Mutate_time', 'Number_of_Mutants', 'ParHAC_Threshold',
-                                           'Number_of_Clusters', 'Max_Cluster_Sz', 'Min_Cluster_Sz',
-                                           'Mean_Cluster_Sz', 'Cluster_time',
-                                           'Mutation_Score', 'MS_time', 'Total_time'])
+        df_clusters = pd.DataFrame(
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+                     'Number_of_Mutants', 'Number_of_Clusters', 'Neurons_per_Cluster_param',
+                     'Max_Cluster_Sz', 'Min_Cluster_Sz', 'Mean_Cluster_Sz',
+                     'Cluster_time', 'Mutation_Score', 'MS_time', 'Total_time'])
         df_clusters.loc[len(df_clusters.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                                                 amt,
-                                                 'cluster', m_time, mutation_len, self._PH_threshold,
-                                                 ms.get_cluster_amount(),
-                                                 obo.get_max_cluster_size(),
-                                                 obo.get_min_cluster_size(),
-                                                 obo.get_mean_cluster_size(), c_time,
-                                                 mutation_score_n,
-                                                 ms_time, m_time + c_time + ms_time]
+                                                   self._mutation_level, m_time, amt, len(clusters),
+                                                   self._cluster_size, unit_clustering.get_max_cluster_size(),
+                                                   unit_clustering.get_min_cluster_size(),
+                                                   unit_clustering.get_mean_cluster_size(),
+                                                   c_time, mutation_score_n, ms_time,
+                                                   m_time + c_time + ms_time]
 
         del obo, ms, original_x, original_y, unit_clustering, clusters, weights, cluster, mutant_layer_dict
         clear_session()
@@ -403,8 +400,8 @@ class DMAACC:
                         m_end = time.time()
                         m_time += m_end - m_start
                         t = (layer_index, neuron_index,) + tuple(
-                            self._model.layers[layer].get_weights()[0][..., neuron_index].flatten(), ) + tuple(
-                            self._model.layers[layer].get_weights()[1][neuron_index].flatten(), )
+                            self._model.layers[layer_index].get_weights()[0][..., neuron_index].flatten(), ) + tuple(
+                            self._model.layers[layer_index].get_weights()[1][neuron_index].flatten(), )
                         # do by layer bc we cluster by layer
                         #TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
                         ms.set_mutations([self])
@@ -438,7 +435,7 @@ class DMAACC:
         ms_mutants = []
         for layer_cluster_list, mutant_list in zip(g_clusters, mutant_layer_dict.values()):
             for cluster in layer_cluster_list:
-                m = np.random.choice(cluster)
+                m = np.random.choice(np.array(cluster).flatten())
                 m = mutant_list[m]
                 ms_mutants += [m.get_killed_classes()]
 

@@ -102,33 +102,36 @@ class OBO:
         #         mutant_layer_dict[layer] += [mut]
         #     else:
         #         mutant_layer_dict[layer] = [mut]
-        list_of_clusters = []
+
+        #list_of_clusters = []
+        amounts = []
+        end_n = 0
+        start_n = 0
         for layer_number, mutant_list in mutant_layer_dict.items():
-            n = len(mutant_list)  # mutations is just a long list
-            print('Clustering %d mutants...' % n)
+            end_n += len(mutant_list)  # mutations is just a long list
+            print('Clustering mutants' + str(start_n) + ' to ' + str(end_n))
             nodes = []
             weights = []
-            for i in range(n):
+            for i in range(start_n, end_n):
                 a = mutant_list[i]
-                for j in range(i + 1, n):
+                for j in range(i + 1, end_n):
                     b = mutant_list[j]
                     nodes.append(i)
                     nodes.append(j)
-                    weights.append([distance.euclidean(a.get_tuple(), b.get_tuple())])
-            list_of_clusters += [[self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)]]
+                    weights.append(distance.euclidean(a.get_tuple(), b.get_tuple())) # removed []
+            amounts.append(start_n)
+            start_n = end_n
 
-        # cluster_size_list = []
-        # list_of_mutant_clusters = []
-        # for layer_cluster_list, mutant_list in zip(list_of_clusters, mutant_layer_dict.values()):
-        #     temp = []
-        #     for layer_cluster in layer_cluster_list:
-        #         temp += [np.array(mutant_list)[np.array(layer_cluster)]]
-        #         cluster_size_list += [len(layer_cluster)]
-        #     list_of_mutant_clusters += temp
+        weights = np.array(weights).reshape(-1, 1)
+        list_of_clusters = [self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)]
 
         cluster_size_list = []
         for layer_cluster_list in list_of_clusters:
             for cluster in layer_cluster_list:
+                print(cluster)
+                offset = amounts.pop(0)
+                for i in range(len(cluster)):
+                    cluster[i] -= offset
                 cluster_size_list.append(len(cluster))
 
         self._max_cluster_size = max(cluster_size_list)
