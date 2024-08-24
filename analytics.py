@@ -27,7 +27,8 @@
 # (P-value significantly smaller than 0.05 will indicate/signify statistical significance with a confidence level of 95%
 # (example outcome sentence: we observe that all outputs show a p-value of less than 0.05)
 #
-
+import warnings
+warnings.filterwarnings("ignore")
 
 
 
@@ -36,11 +37,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import mannwhitneyu
 
-vanilla = pd.read_csv('outputs/vanilla_experiments_obo.csv')
+vanilla = pd.read_csv('outputs/data/vanilla_experiments_obo.csv')
 vl = len(vanilla.index)
-approach1 = pd.read_csv('outputs/experiments_approach1_obo.csv')
+approach1 = pd.read_csv('outputs/data/experiments_approach1_obo.csv')
 a1l = len(approach1.index)
-approach2 = pd.read_csv('outputs/experiments_approach2_obo.csv')
+approach2 = pd.read_csv('outputs/data/experiments_approach2_obo.csv')
 a2l = len(approach2.index)
 
 # for i in (v1):
@@ -57,10 +58,11 @@ for model in v_models:
 
 
 avg_a1 = {}
+a1_params = pd.unique(approach1['Neurons_per_Cluster_param'])
 a1_models = pd.unique(approach1['Model_Type'])
 for model in a1_models:
 	temp = []
-	for n in [2, 4, 6, 8, 10]:
+	for n in a1_params:
 		temp += [tuple((n,
 				   [approach1[approach1['Neurons_per_Cluster_param'] == n][approach1['Model_Type'] == model]['Mutate_time'].mean(),
 					approach1[approach1['Neurons_per_Cluster_param'] == n][approach1['Model_Type'] == model]['Cluster_time'].mean(),
@@ -71,10 +73,11 @@ for model in a1_models:
 # [(2, fcnn-mnist, []), (2, fcnn-fmnist, [])]
 
 avg_a2 = {}
+a2_params = pd.unique(approach2['ParHAC_Threshold'])
 a2_models = pd.unique(approach2['Model_Type'])
 for model in a2_models:
 	temp = []
-	for n in [3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7]:
+	for n in a2_params:
 		temp += [tuple((n,
 				   [approach2[approach2['ParHAC_Threshold'] == n][approach2['Model_Type'] == model]['Mutate_time'].mean(),
 				   approach2[approach2['ParHAC_Threshold'] == n][approach2['Model_Type'] == model]['Cluster_time'].mean(),
@@ -92,14 +95,20 @@ for model in a2_models:
 #===================================================================================================================================
 # RQ1
 
+#----------------------------------------------------------------------------------------------
+#Approach2 Time Speedup
+
 label = []
 X = []
 Y = []
 for key, value in avg_a2.items():
+	if key.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
 	for thing in value:
 		label += [key]
 		X += [thing[0]]
-		Y += [float(((avg_vanilla[key][2]) - (thing[1][3]) / (avg_vanilla[key][2])))]
+		Y += [float((avg_vanilla[key][2] - thing[1][3]) / avg_vanilla[key][2])]
+		#Y += [float(((avg_vanilla[key][2]) - (thing[1][3]) / (avg_vanilla[key][2])))]
 		#Y += [float(((avg_vanilla[key][0] + avg_vanilla[key][2]) - (thing[1][0] + thing[1][1] + thing[1][3])) / (avg_vanilla[key][0] + avg_vanilla[key][2]))]
 		#((vanilla mutation testing time) - (approach-1-2-mutation testing time)) / (vanilla mutation testing time)
 
@@ -127,6 +136,7 @@ for label in unique_labels:
     plt.plot(X_clean[indices], Y_clean[indices], label=label)
 
 # Customizing the plot
+plt.xticks(np.array(a2_params))
 plt.xlabel('PARHAC_Threshold')
 plt.ylabel('Speedup')
 plt.title('Approach 2: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
@@ -135,16 +145,21 @@ plt.grid(True)
 plt.tight_layout()
 
 # Show plot
-plt.savefig('Approach2_TotalTimeSpeedup-vs-PARHAC.jpeg')
+plt.savefig('outputs/Approach2_TotalTimeSpeedup-vs-PARHAC.jpeg')
+
+#----------------------------------------------------------------------------------------------
+#Approach1 Time Speedup
 
 label = []
 X = []
 Y = []
 for key, value in avg_a1.items():
+	if key.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
 	for thing in value:
 		label += [key]
 		X += [thing[0]]
-		Y += [float(((avg_vanilla[key][2]) - (thing[1][3]) / (avg_vanilla[key][2])))]
+		Y += [float((avg_vanilla[key][2] - thing[1][3]) / avg_vanilla[key][2])]
 
 X = np.array(X)
 Y = np.array(Y)
@@ -168,6 +183,7 @@ for label in unique_labels:
     plt.plot(X_clean[indices], Y_clean[indices], label=label)
 
 # Customizing the plot
+plt.xticks(np.array(a1_params))
 plt.xlabel('Cluster Size')
 plt.ylabel('Speedup')
 plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
@@ -175,7 +191,7 @@ plt.legend(title='Models')
 plt.grid(True)
 plt.tight_layout()
 
-plt.savefig('Approach1_TotalTimeSpeedup-vs-Clustersz.jpeg')
+plt.savefig('outputs/Approach1_TotalTimeSpeedup-vs-Clustersz.jpeg')
 
 #===================================================================================================================================
 #===================================================================================================================================
@@ -183,10 +199,15 @@ plt.savefig('Approach1_TotalTimeSpeedup-vs-Clustersz.jpeg')
 #===================================================================================================================================
 # RQ2
 
+#----------------------------------------------------------------------------------------------
+#Approach2 Mutation Score
+
 label = []
 X = []
 Y = []
 for key, value in avg_a2.items():
+	if key.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
 	for thing in value:
 		label += [key]
 		X += [thing[0]]
@@ -217,6 +238,7 @@ for label in unique_labels:
 	plt.plot(X_clean[indices], Y_clean[indices], label=label)
 
 # Customizing the plot
+plt.xticks(np.array(a2_params))
 plt.xlabel('PARHAC_Threshold')
 plt.ylabel('Mutation Score Error')
 plt.title('Approach 2: How much mutation score is lost when using neuron clustering vs vanilla mutation testing?')
@@ -225,12 +247,16 @@ plt.grid(True)
 plt.tight_layout()
 
 # Show plot
-plt.savefig('Approach2_MutScoreLoss-vs-PARHAC.jpeg')
+plt.savefig('outputs/Approach2_MutScoreLoss-vs-PARHAC.jpeg')
+#----------------------------------------------------------------------------------------------
+#Approach1 Mutation Score
 
 label = []
 X = []
 Y = []
 for key, value in avg_a1.items():
+	if key.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
 	for thing in value:
 		label += [key]
 		X += [thing[0]]
@@ -258,95 +284,128 @@ for label in unique_labels:
 	plt.plot(X_clean[indices], Y_clean[indices], label=label)
 
 # Customizing the plot
+plt.xticks(np.array(a1_params))
 plt.xlabel('Cluster Size')
-plt.ylabel('Speedup')
+plt.ylabel('Mutation Score Error')
 plt.title('Approach 1: How much mutation score is lost when using neuron clustering vs vanilla mutation testing?')
 plt.legend(title='Models')
 plt.grid(True)
 plt.tight_layout()
-plt.savefig('Approach1_MutScoreLoss-vs-Clustersz.jpeg')
+plt.savefig('outputs/Approach1_MutScoreLoss-vs-Clustersz.jpeg')
 
 #=======================================================================
+#----------------------------------------------------------------------------------------------
+# Box and whisker plot
+# one plot for each model and approach
+# Approach 1 (fcnn-mnist, fcnn-fmnist, fcnn-kmnist, fcnn-emnist, lenet5-mnist, lenet5-fmnist, lenet5kmnist, lenet5-emnist, resnet18-cifar10, resnet18-svhn)
+# Approach 2 (fcnn-mnist, fcnn-fmnist, fcnn-kmnist, fcnn-emnist, lenet5-mnist, lenet5-fmnist, lenet5kmnist, lenet5-emnist, resnet18-cifar10, resnet18-svhn)
 
-
+#v_models = pd.unique(vanilla['Model_Type']) #approach1 & approach2
+a1_params = pd.unique(approach1['Neurons_per_Cluster_param'])
 #label = []
-X = []
-Y = []
-for key, value in avg_a1.items():
-	for thing in value:
-		#label += [key]
-		X += [thing[0]]
-		Y += [float(((avg_vanilla[key][1]) - (thing[1][2])) / (avg_vanilla[key][1]))]
-
-# Convert lists to numpy arrays for easier manipulation
-Y = np.array(Y)
-X = np.array(X)
-labels = np.array(labels)
-
-# # Remove NaN values
-valid_indices = ~np.isnan(Y)
-Y_clean = Y[valid_indices]
-labels_clean = labels[valid_indices]
-
-# Prepare data for box plot
-unique_labels = np.unique(labels_clean)
-data_for_boxplot = [Y_clean[labels_clean == label] for X in unique_labels]
-
-# Plotting
-plt.figure(figsize=(10, 6))
-plt.boxplot(data_for_boxplot, labels=unique_labels, vert=True)
-
-# Customizing the plot
-plt.xlabel('Parameters')
-plt.ylabel('Speedup')
-plt.title('Box-and-Whisker Plot')
-plt.grid(True)
-plt.tight_layout()
-#
-# # Show plot
-plt.savefig('Approach2_BoxPlot-Y-Values.jpeg')
-#
-#
-# label = []
 # X = []
 # Y = []
-# approach1['Mutate_time']
-# approach2['Mutate_time']
-# for key, value in avg_a2.items():
-# 	for thing in value:
-# 		label += [key]
-# 		X += [thing[0]]
-# 		Y += [float(((avg_vanilla[key][1]) - (thing[1][2])) / (avg_vanilla[key][1]))]
-#
-#
-# X = np.array()
-# Y = np.array(Y)
-#
-# # Remove NaN values from Y
-# valid_indices = ~np.isnan(Y)
-# X_clean = X[valid_indices]
-# Y_clean = Y[valid_indices]
-#
-# # Prepare data for box plot
-# data_for_boxplot = [X_clean, Y_clean]
-#
-# # Plotting
-# plt.figure(figsize=(8, 6))
-# plt.boxplot(data_for_boxplot, labels=['X Values', 'Y Values'], vert=True)
-#
-# # Customizing the plot
-# plt.ylabel('Values')
-# plt.title('Box-and-Whisker Plot for X and Y')
-# plt.grid(True)
-# plt.tight_layout()
-#
-# # Show plot
-# plt.show()
-#
-#
+#for key, value in avg_a1.items():
+for model in a1_models:
+	plt.figure(figsize=(10, 6))
+	Y = []
+	if model.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
+	for param in a1_params:
+		a1_vals = approach1[approach1['Neurons_per_Cluster_param'] == param][approach1['Model_Type'] == model]['Mutate_time']
+		temp = []
+		for index, thing in a1_vals.items():
+			temp += [float(((avg_vanilla[model][1]) - thing) / (avg_vanilla[model][1]))]
+		Y += [temp]
+
+	plt.boxplot(Y,labels = a1_params)
+
+	plt.xlabel('Parameters')
+	plt.ylabel('Speedup')
+	plt.title(model.split("/")[-1]+' Box-and-Whisker Plot')
+	plt.grid(True)
+	plt.tight_layout()
+	#
+	# # Show plot
+	plt.savefig('outputs/Approach1_'+model.split("/")[-1]+'_BoxPlot-Y-Values.jpeg')
+
+a2_params = pd.unique(approach2['ParHAC_Threshold'])
+for model in a2_models:
+	plt.figure(figsize=(10, 6))
+	Y = []
+	if model.split("/")[-1] in ['resnet18-cifar10.keras', 'resnet18-cifar100.keras', 'resnet18-svhn.keras']:
+		continue
+	for param in a2_params:
+		a2_vals = approach2[approach2['ParHAC_Threshold'] == param][approach2['Model_Type'] == model]['Mutate_time']
+		temp = []
+		for index, thing in a2_vals.items():
+			temp += [float(((avg_vanilla[model][1]) - thing) / (avg_vanilla[model][1]))]
+		Y += [temp]
+
+	plt.boxplot(Y,labels = a2_params)
+
+	plt.xlabel('Parameters')
+	plt.ylabel('Speedup')
+	plt.title(model.split("/")[-1]+' Box-and-Whisker Plot')
+	plt.grid(True)
+	plt.tight_layout()
+	#
+	# # Show plot
+	plt.savefig('outputs/Approach2_'+model.split("/")[-1]+'_BoxPlot-Y-Values.jpeg')
+
+
+#=======================================================================
+#----------------------------------------------------------------------------------------------
+# Mann-Whitney U-test Approach1/2 for both Mutation Test and Time and in between parameters for each model
 # # U1, p = mannwhitneyu()
-# #
-# # for t in avg_a1:
+# P-value significantly smaller than 0.05 will indicate/signify statistical significance with a confidence level of 95%
+
+X = np.array(X)
+Y = np.array(Y)
+labels = np.array(label)
+mwut_df = pd.DataFrame(columns=['X_Model', 'Y_Model', 'x_parameter', 'y_parameter', 'U1', 'p',])
+
+for modelx in v_models:
+	for modely in v_models:
+		for paramy in a1_params:
+			x = vanilla[vanilla['Model_Type'] == modelx]['Mutate_time']
+			y = approach1[approach1['Neurons_per_Cluster_param'] == paramy][approach1['Model_Type'] == modely]['Mutate_time']
+			U1,p = mannwhitneyu(x, y)
+			mwut_df.loc[len(mwut_df.index)] = [modelx.split("/")[-1], modely.split("/")[-1], 0, paramy, U1, p]
+		for paramy in a2_params:
+			x = vanilla[vanilla['Model_Type'] == modelx]['Mutate_time']
+			y = approach2[approach2['ParHAC_Threshold'] == paramy][approach2['Model_Type'] == modely]['Mutate_time']
+			U1,p = mannwhitneyu(x, y)
+			mwut_df.loc[len(mwut_df.index)] = [modelx.split("/")[-1], modely.split("/")[-1], 0, paramy, U1, p]
+	for index, paramx in enumerate(a1_params):
+		for i in range(index+1, len(a1_params)):
+			x = approach1[approach1['Neurons_per_Cluster_param'] == paramx][approach1['Model_Type'] == modelx]['Mutate_time']
+			y = approach1[approach1['Neurons_per_Cluster_param'] == a1_params[i]][approach1['Model_Type'] == modelx]['Mutate_time']
+			U1,p = mannwhitneyu(x, y)
+			mwut_df.loc[len(mwut_df.index)] = [modelx.split("/")[-1], modelx.split("/")[-1], paramx, a1_params[i], U1, p]
+	for index, paramx in enumerate(a2_params):
+		for i in range(index+1, len(a2_params)):
+			x = approach2[approach2['ParHAC_Threshold'] == paramx][approach2['Model_Type'] == modelx]['Mutate_time']
+			y = approach2[approach2['ParHAC_Threshold'] == a2_params[i]][approach2['Model_Type'] == modelx]['Mutate_time']
+			U1,p = mannwhitneyu(x, y)
+			mwut_df.loc[len(mwut_df.index)] = [modelx.split("/")[-1], modelx.split("/")[-1], paramx, a2_params[i], U1, p]
+	for index, paramx in enumerate(a1_params):
+		for i in range(index+1, len(a2_params)):
+			x = approach1[approach1['Neurons_per_Cluster_param'] == paramx][approach1['Model_Type'] == modelx]['Mutate_time']
+			y = approach2[approach2['ParHAC_Threshold'] == a2_params[i]][approach2['Model_Type'] == modelx]['Mutate_time']
+			U1,p = mannwhitneyu(x, y)
+			mwut_df.loc[len(mwut_df.index)] = [modelx.split("/")[-1], modelx.split("/")[-1], paramx, a2_params[i], U1, p]
+
+mwut_df.to_csv('outputs/MannWhitneyUTestValues.csv', mode='w', header=True, index=False)
+
+# fig, ax = plt.subplots()
 #
+# #hide the axes
+# fig.patch.set_visible(False)
+# ax.axis('off')
+# ax.axis('tight')
+# table = ax.table(cellText=mwut_df.values, colLabels=mwut_df.columns, loc='center')
 #
-#
+# #display table
+# fig.tight_layout()
+# plt.savefig('outputs/MannWhitneyUTestValues.jpeg')

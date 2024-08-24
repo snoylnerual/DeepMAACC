@@ -23,6 +23,9 @@ class OBO:
         self._mean_cluster_size = None
         self._mutant_number = 0
 
+    def get_cluster_amount(self):
+        return self._cluster_amount
+
     def get_max_cluster_size(self):
         return self._max_cluster_size
 
@@ -91,54 +94,50 @@ class OBO:
         print(mo_type + "Mutant number " + str(self._mutant_number))
 
     def get_one_graph_clusters(self, mutant_layer_dict, threshold):
-        # for mut in mutations:  # mutant type in a list of mutants
-        #     layer = mut.get_layer()
-        #     neuron = mut.get_neuron()
-        #     t = (layer, neuron,) + tuple(
-        #         mut.get_model().layers[layer].get_weights()[0][..., neuron].flatten(), ) + tuple(
-        #         mut.get_model().layers[layer].get_weights()[1][neuron].flatten(), )
-        #     mut.set_tuple(t)
-        #     if layer in mutant_layer_dict:
-        #         mutant_layer_dict[layer] += [mut]
-        #     else:
-        #         mutant_layer_dict[layer] = [mut]
-
         #list_of_clusters = []
         amounts = []
         end_n = 0
         start_n = 0
+        nodes = []
+        weights = []
         for layer_number, mutant_list in mutant_layer_dict.items():
             end_n += len(mutant_list)  # mutations is just a long list
-            print('Clustering mutants' + str(start_n) + ' to ' + str(end_n))
-            nodes = []
-            weights = []
+            print('Adding mutants ' + str(start_n) + ' to ' + str(end_n))
             for i in range(start_n, end_n):
-                a = mutant_list[i]
+                a = mutant_list[i-start_n]
                 for j in range(i + 1, end_n):
-                    b = mutant_list[j]
+                    b = mutant_list[j-start_n]
                     nodes.append(i)
                     nodes.append(j)
                     weights.append(distance.euclidean(a.get_tuple(), b.get_tuple())) # removed []
             amounts.append(start_n)
             start_n = end_n
-
+        amounts.append(end_n+1)
         weights = np.array(weights).reshape(-1, 1)
-        list_of_clusters = [self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)]
+        list_of_clusters = self.do_clustering(nodes, (MinMaxScaler()).fit_transform(weights), threshold)
 
         cluster_size_list = []
-        for layer_cluster_list in list_of_clusters:
-            for cluster in layer_cluster_list:
-                print(cluster)
+        layer_cluster_list = []
+        offset = amounts.pop(0)
+        for cluster_indices in list_of_clusters:
+            print(cluster_indices)
+            temp = []
+            if cluster_indices[0] >= amounts[0]:
                 offset = amounts.pop(0)
-                for i in range(len(cluster)):
-                    cluster[i] -= offset
-                cluster_size_list.append(len(cluster))
+                layer_cluster_list += [temp]
+                temp = []
+            for i in range(len(cluster_indices)):
+                cluster_indices[i] -= offset
+            temp += [cluster_indices]
+            cluster_size_list.append(len(cluster_indices))
 
+        self._cluster_amount = len(cluster_size_list)
         self._max_cluster_size = max(cluster_size_list)
         self._min_cluster_size = min(cluster_size_list)
         self._mean_cluster_size = sum(cluster_size_list) / len(cluster_size_list)
+        print(layer_cluster_list)
 
-        return list_of_clusters
+        return layer_cluster_list
 
     def do_clustering(self, edges, weights, threshold):
         libquickstart = ctypes.CDLL('libquickstart.so')  # '../dms-codebase/dms/lib/clustering.dylib')#

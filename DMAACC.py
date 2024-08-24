@@ -402,6 +402,9 @@ class DMAACC:
                         t = (layer_index, neuron_index,) + tuple(
                             self._model.layers[layer_index].get_weights()[0][..., neuron_index].flatten(), ) + tuple(
                             self._model.layers[layer_index].get_weights()[1][neuron_index].flatten(), )
+                        # t = (layer_index, neuron_index,) + tuple(
+                        #     self._model.layers[layer_index].get_weights()[0].flatten(), ) + tuple(
+                        #     self._model.layers[layer_index].get_weights()[1].flatten(), )
                         # do by layer bc we cluster by layer
                         #TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
                         ms.set_mutations([self])
@@ -454,7 +457,7 @@ class DMAACC:
         df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(),
                                                  len(g_clusters),
                                                  'cluster', m_time, mutation_len, self._PH_threshold,
-                                                 ms.get_cluster_amount(),
+                                                 obo.get_cluster_amount(),
                                                  obo.get_max_cluster_size(),
                                                  obo.get_min_cluster_size(),
                                                  obo.get_mean_cluster_size(), c_time,

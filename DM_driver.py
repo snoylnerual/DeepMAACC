@@ -74,8 +74,7 @@ if __name__ == "__main__":
             #           ['resnet18-cifar10.keras'],
             #           ['resnet18-cifar100.keras'],
             #           ['resnet18-svhn.keras']]
-        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']  # , 'cifar10', 'cifar100', 'svhn']  #
-
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']  # , 'cifar10', 'cifar100', 'svhn']
 
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -109,19 +108,14 @@ if __name__ == "__main__":
         n_list = [2, 4, 6, 8, 10]
 
         #model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
-        model_list = [['resnet18-cifar10.keras'],
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      ['resnet18-cifar10.keras'],
                       ['resnet18-cifar100.keras'],
                       ['resnet18-svhn.keras']]
-        # ['fcnn-mnist.keras', 'lenet5-mnist.keras'],
-        # ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
-        # ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-        # ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
-        dataset_list = ['cifar10', 'cifar100', 'svhn']  # 'mnist', 'fmnist', 'kmnist', 'emnist',
-        # model_list = []
-        # for dataset in dataset_list:
-        #     for model in model_type_list:
-        #         if os.path.isfile('examples/' + dataset + '/' + model + '-' + dataset + '.keras'):
-        #             model_list += model + '-' + dataset + '.keras'
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
 
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -147,38 +141,21 @@ if __name__ == "__main__":
                                 df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                             else:
                                 df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
-                # for i in range(6):
-                #     dmaacc_run.set_mutation_level('neuron')
-                #     df_clusters = dmaacc_run.run_approach_1()
-                #     if os.path.isfile('experiments_approach1_' + str(dmaacc_run.get_mutation_level) + '.csv'):
-                #         df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
-                #     else:
-                #         df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
     # ========================================================================================================
     elif run_type == 'approach2':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        PH_thresholds = [n / 2 for n in range(6, 15)]
-
-        #model_type_list = [method for method in dir(Network) if ('_scratch' in method or '_keras' in method)]
-        model_list = [['fcnn-mnist.keras']]
-        # , 'lenet5-mnist.keras'],
-        #               ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
-        #               ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-        #               ['fcnn-emnist.keras', 'lenet5-emnist.keras']] #,
-                      # ['resnet18-cifar10.keras'],
-                      # ['resnet18-cifar100.keras'],
-                      # ['resnet18-svhn.keras'],
-        dataset_list = ['mnist'] #, 'fmnist', 'kmnist', 'emnist']  # , 'cifar10', 'cifar100', 'svhn', 'imdb', 'reuters']
-        # model_list = []
-        # temp_list = []
-        # for dataset in dataset_list:
-        #     for model in model_type_list:
-        #         if os.path.isfile('examples/'+dataset+'/'+model+'-'+dataset+'.keras'):
-        #             temp_list += [model+'-'+dataset+'.keras']
-        #     model_list += [temp_list]
+        PH_thresholds = [n / 100 for n in range(30, 75, 5)]
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
+                      ['resnet18-cifar10.keras'],
+                      ['resnet18-cifar100.keras'],
+                      ['resnet18-svhn.keras']]
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
 
         for i in range(6):
             for ds, model_l in zip(dataset_list, model_list):
