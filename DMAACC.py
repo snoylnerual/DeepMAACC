@@ -218,9 +218,9 @@ class DMAACC:
                         t = tuple((layer_index, neuron_index))
                         # do by layer bc we cluster by layer
                         # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
-                        self._model.compile(optimizer='adam',
-                                         loss='categorical_crossentropy',
-                                         metrics=['accuracy'])
+                        # self._model.compile(optimizer='adam',
+                        #                  loss='categorical_crossentropy',
+                        #                  metrics=['accuracy'])
                         ms.set_mutations([self])
                         ms_start = time.time()
                         ms.run_obo(original_x, original_y)

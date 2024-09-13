@@ -13,9 +13,9 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    #run_type = 'vanilla'
+    run_type = 'vanilla'
     # run_type = 'approach1'
-    run_type = 'approach2'
+    #run_type = 'approach2'
 
     # arch_type = 'all'
     arch_type = 'one_by_one'
@@ -147,6 +147,7 @@ if __name__ == "__main__":
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        #.3,.4,.5,.6,.7
         PH_thresholds = [n / 100 for n in range(30, 75, 5)]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
