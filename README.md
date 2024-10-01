@@ -29,6 +29,7 @@ Deep Mutation Analysis Acceleration via Clustering
 	Ø Then for testing, you test one representative from the mutant clusters and if that one is killed/kills a class, then all are killed.
 	Ø Each mutation operator changes one neuron
 	Ø CHANGED CLUSTERS PER LAYER TO CLUSTER SIZE
+Need to fix the mutant tracking in approach2
 
 If you were to use the clusters, there is a chance that most clusters will hold a different number of neurons. This would mean there could be dimension mismatches when trying to calculate the eucclidian distance.
 

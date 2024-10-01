@@ -169,12 +169,13 @@ class ClusterArray(ctypes.Structure):
                 ("length", ctypes.c_int)]
 
 class MiniMutant:
-    def __init__(self, tup, ln, nn, kc, mo_type):
+    def __init__(self, tup, ln, nn, kc, mo_type, ms_time):
         self._tuple = tup
         self._layer_num = ln
         self._neuron_num = nn
         self._killed_classes = kc
         self._mo_type = mo_type
+        self._ms_time = ms_time
 
     def get_tuple(self):
         return self._tuple
@@ -187,3 +188,6 @@ class MiniMutant:
 
     def get_killed_classes(self):
         return self._killed_classes
+
+    def get_ms_time(self):
+        return self._ms_time

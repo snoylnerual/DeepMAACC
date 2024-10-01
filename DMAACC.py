@@ -412,11 +412,11 @@ class DMAACC:
                         ms.run_obo(original_x, original_y)
                         killed_classes = ms.get_killed_classes()
                         ms_end = time.time()
-                        ms_time += ms_end - ms_start
+                        #ms_time += ms_end - ms_start
                         if layer_index in mutant_layer_dict:
-                            mutant_layer_dict[layer_index] += [MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                            mutant_layer_dict[layer_index] += [MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
                         else:
-                            mutant_layer_dict[layer_index] = [MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                            mutant_layer_dict[layer_index] = [MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
                         # resets
                         layer.set_weights(weights)
 
@@ -435,19 +435,26 @@ class DMAACC:
         #   then I get the killed classes from each Minimutant, divide it by nb_classes,
         #   and then add that for each Minimutant for a model.
 
-        ms_mutants = []
+        ms_mutants_kc = []
+        ms_times = []
+        mutant_cluster_lengths = []
         for layer_cluster_list, mutant_list in zip(g_clusters, mutant_layer_dict.values()):
             for cluster in layer_cluster_list:
                 m = np.random.choice(np.array(cluster).flatten())
                 m = mutant_list[m]
-                ms_mutants += [m.get_killed_classes()]
+                ms_mutants_kc += [m.get_killed_classes()*len(cluster)]
+                mutant_cluster_lengths += [len(cluster)]
+                ms_times += [m.get_ms_time()]
 
-        mutation_score_n = sum(ms_mutants) / (len(ms_mutants) * self._dataset.get_nb_classes())
+
+        mutation_score_n = sum(ms_mutants_kc) / (sum(mutant_cluster_lengths) * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
 
         mutation_len = 0
         for l in mutant_layer_dict.values():
             mutation_len += len(l)
+
+        i
 
         df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
                                            'Mutate_time', 'Number_of_Mutants', 'ParHAC_Threshold',
