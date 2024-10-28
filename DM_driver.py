@@ -66,8 +66,9 @@ if __name__ == "__main__":
     elif run_type == 'vanilla':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
+        dmaacc_run.set_selection_fraction(1.0)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+        model_list = [['fcnn-mnist.keras]', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
                       ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
@@ -104,6 +105,7 @@ if __name__ == "__main__":
         dmaacc_run = DMAACC()
         # dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
         dmaacc_run.set_mutation_percent(0.1)
+        dmaacc_run.set_selection_fraction(1.0)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
         n_list = [2, 4, 6, 8, 10]
 
@@ -147,6 +149,7 @@ if __name__ == "__main__":
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        dmaacc_run.set_selection_fraction(1.0)
         #.3,.4,.5,.6,.7
         PH_thresholds = [n / 100 for n in range(30, 75, 5)]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
