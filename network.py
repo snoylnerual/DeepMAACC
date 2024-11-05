@@ -1,7 +1,8 @@
 from keras.callbacks import EarlyStopping
 from keras.datasets import fashion_mnist, mnist, cifar10, cifar100, imdb, reuters
-from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D, LSTM, Embedding
+from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, GlobalAveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D, LSTM, Embedding, ReLU, Add
 from keras.applications import VGG16, ResNet50
+from keras.preprocessing import image_dataset_from_directory
 from keras.utils import to_categorical, pad_sequences
 from keras.models import load_model, Model
 from keras import Sequential, layers
@@ -82,6 +83,147 @@ class Network:
         print("Model saved")
         # TODO change print to logs
         return model
+
+    # mobilenetv2 ------------------------------------------------------------------------------------------------------
+    def depthwise_separable_conv(self, y, filters, kernel_size=3, stride=1):
+        y = Conv2D(filters, kernel_size=1, padding='same', strides=stride)(y)
+        y = BatchNormalization()(y)
+        y = ReLU()(y)
+        y = Conv2D(filters, kernel_size=kernel_size, padding='same', strides=stride, groups=filters)(y)
+        y = BatchNormalization()(y)
+        y = ReLU()(y)
+        return y
+
+    def mobilenetv2(self, x_train, y_train, x_test, y_test, nb_classes):
+        inputs = Input(shape=(224, 224, 3))
+        x = Conv2D(32, kernel_size=3, strides=2, padding='same')(inputs)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = self.depthwise_separable_conv(x, 64, kernel_size=3)
+        for f, s in [(128, 2), (128, 1), (256, 2), (256, 1), (512, 2)]:
+            x = self.depthwise_separable_conv(x, f, stride=s)
+        x = GlobalAveragePooling2D()(x)
+        outputs = Dense(nb_classes, activation='softmax')(x)
+        model = Model(inputs, outputs)
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=100)
+        model.save('examples/' + self._dataset_name + '/mobilenetv2-' + self._dataset_name + '.keras')
+        print("Model saved")
+        return model
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def alexnet(self, x_train, y_train, x_test, y_test, nb_classes):
+
+        model = Sequential()
+        model.add(Conv2D(96, (11, 11), strides=(4, 4), activation='relu', padding='same', input_shape=(28, 28, 1)))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same'))
+        model.add(Conv2D(256, (5, 5), activation='relu', padding='same'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same'))
+        model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(384, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same'))
+        model.add(Flatten())
+        model.add(Dense(4096, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dense(4096, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dense(1000, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dense(nb_classes, activation='softmax'))
+
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, mode='max', verbose=0)
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), callbacks=[early_stopping])
+        model.save('examples/' + self._dataset_name + '/alexnet-' + self._dataset_name + '.keras')
+        print("Model saved")
+        return model
+
+    def vggnet16(self, x_train, y_train, x_test, y_test, nb_classes):
+        model = Sequential()
+        model.add(Conv2D(64, (3, 3), padding='same', input_shape=(56, 56, 1), activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+        model.add(Conv2D(128, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(128, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+        model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(256, (3, 3), padding='same', activation='relu'))
+        model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Conv2D(512, (3, 3), padding='same', activation='relu'))
+        model.add(BatchNormalization())
+        model.add(MaxPooling2D((2, 2), strides=(2, 2)))
+        model.add(Flatten())
+        model.add(Dense(4096, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dense(4096, activation='relu'))
+        model.add(BatchNormalization())
+        model.add(Dense(nb_classes, activation='softmax'))
+
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+        model.save('examples/' + self._dataset_name + '/vggnet16-' + self._dataset_name + '.keras')
+        print("Model saved")
+        return model
+
+    # resnet10 ---------------------------------------------------------------------------------------------------------
+    def residual_block(self, y, filters, kernel_size=3, stride=1):
+        shortcut = y
+        y = Conv2D(filters, kernel_size=kernel_size, strides=stride, padding="same")(y)
+        y = BatchNormalization()(y)
+        y = ReLU()(y)
+        y = Conv2D(filters, kernel_size=kernel_size, strides=1, padding="same")(y)
+        y = BatchNormalization()(y)
+        if stride != 1:
+            shortcut = Conv2D(filters, kernel_size=1, strides=stride)(shortcut)
+            shortcut = BatchNormalization()(shortcut)
+        y = Add()([y, shortcut])
+        y = ReLU()(y)
+        return y
+
+    def resnet10(self, x_train, y_train, x_test, y_test, nb_classes):
+        inputs = Input(shape=(32, 32, 3))
+        x = Conv2D(64, kernel_size=3, strides=1, padding="same")(inputs)
+        x = BatchNormalization()(x)
+        x = ReLU()(x)
+        x = self.residual_block(x, 64)
+        x = self.residual_block(x, 64)
+        x = self.residual_block(x, 128, stride=2)
+        x = self.residual_block(x, 256, stride=2)
+        x = self.residual_block(x, 512, stride=2)
+        x = GlobalAveragePooling2D()(x)
+        outputs = Dense(nb_classes, activation='softmax')(x)
+        model = Model(inputs, outputs)
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.fit(x_train, y_train, batch_size=64, validation_data=(x_test, y_test), epochs=100)
+        model.save('examples/' + self._dataset_name + '/resnet10-' + self._dataset_name + '.keras')
+        print("Model saved")
+        return model
+
+    # ------------------------------------------------------------------------------------------------------------------
 
     def resnet18(self, x_train, y_train, x_test, y_test, nb_classes):
         #https://github.com/jerett/Keras-CIFAR10/blob/master/classifiers/ResNet.py
@@ -343,6 +485,8 @@ class Dataset:
             nb_classes = 27
         elif self._dataset_name in ['cifar100']:
             nb_classes = 100
+        elif self._dataset_name in ['caltech-101']:
+            nb_classes = 101
         elif self._dataset_name in ['imdb']:
             nb_classes = 2
         elif self._dataset_name in ['reuters']:
@@ -440,6 +584,31 @@ class Dataset:
             x_train, x_test = x_train / 255., x_test / 255.
             y_train, y_test = to_categorical(y_train, num_classes=nb_classes), to_categorical(y_test, num_classes=nb_classes)
 
+        elif dataset_name == 'caltech-101':
+            data_dir = '../datasets/caltech-101/101_ObjectCategories'
+            batch_size = 32
+            img_size = (224, 224)
+            train_ds = image_dataset_from_directory(data_dir,
+                                                    validation_split=0.2,
+                                                    subset="training",
+                                                    seed=42,
+                                                    image_size=img_size,
+                                                    batch_size=batch_size)
+            val_ds = image_dataset_from_directory(data_dir,
+                                                  validation_split=0.2,
+                                                  subset="validation",
+                                                  seed=42,
+                                                  image_size=img_size,
+                                                  batch_size=batch_size)
+
+            num_classes = len(train_ds.class_names)
+            x_train, y_train = self.dataset_to_numpy(train_ds)
+            x_test, y_test = self.dataset_to_numpy(val_ds)
+            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            # np.save('test_inputs.npy', x_test)
+            # np.save('test_outputs.npy', np.argmax(y_test, axis=1))
+
+
         elif dataset_name == 'imdb':
             nb_classes = 2
             max_features = 20000
@@ -474,6 +643,14 @@ class Dataset:
         tty = 'examples/' + file_name + '/data/' + file_name + '_test_outputs.npy'
         return os.path.isfile(tx) and os.path.isfile(ty) and os.path.isfile(ttx) and os.path.isfile(tty)
 
+
+    def dataset_to_numpy(self, dataset):
+        images = []
+        labels = []
+        for image_batch, label_batch in dataset:
+            images.append(image_batch.numpy())
+            labels.append(label_batch.numpy())
+        return np.concatenate(images), np.concatenate(labels)
 
 if __name__ == '__main__':
     parser = ArgumentParser()

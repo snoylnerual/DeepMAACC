@@ -21,4 +21,32 @@ python network.py -m rnn -d imdb
 python network.py -m rnn -d reuters
 echo "Finished rnn models"
 
+python network.py -m resnet10 -d cifar10
+python network.py -m resnet10 -d svhn
+python network.py -m resnet10 -d caltech-101
+echo "Finished resnet10 models"
+
+python network.py -m alexnet -d mnist
+python network.py -m alexnet -d fmnist
+python network.py -m alexnet -d kmnist
+python network.py -m alexnet -d emnist
+python network.py -m alexnet -d cifar10
+python network.py -m alexnet -d svhn
+python network.py -m alexnet -d caltech-101
+echo "Finished alexnet models"
+
+python network.py -m mobilenetv2 -d cifar10
+python network.py -m mobilenetv2 -d svhn
+python network.py -m mobilenetv2 -d caltech-101
+echo "Finished mobilenetv2 models"
+
+python network.py -m vggnet16 -d mnist
+python network.py -m vggnet16 -d fmnist
+python network.py -m vggnet16 -d kmnist
+python network.py -m vggnet16 -d emnist
+python network.py -m vggnet16 -d cifar10
+python network.py -m vggnet16 -d svhn
+python network.py -m vggnet16 -d caltech-101
+echo "Finished vggnet16 models"
+
 echo "Finished creating models"
