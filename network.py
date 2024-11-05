@@ -95,6 +95,11 @@ class Network:
         return y
 
     def mobilenetv2(self, x_train, y_train, x_test, y_test, nb_classes):
+        if x_train[0].shape != (224, 224, 3):
+            amt = int((224-x_train[0].shape[0])/2)
+            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+
         inputs = Input(shape=(224, 224, 3))
         x = Conv2D(32, kernel_size=3, strides=2, padding='same')(inputs)
         x = BatchNormalization()(x)
@@ -113,9 +118,13 @@ class Network:
     # ------------------------------------------------------------------------------------------------------------------
 
     def alexnet(self, x_train, y_train, x_test, y_test, nb_classes):
+        if x_train[0].shape != (224, 224, 3):
+            amt = int((224-x_train[0].shape[0])/2)
+            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
 
         model = Sequential()
-        model.add(Conv2D(96, (11, 11), strides=(4, 4), activation='relu', padding='same', input_shape=(28, 28, 1)))
+        model.add(Conv2D(96, (11, 11), strides=(4, 4), activation='relu', padding='same', input_shape=(224, 224, 3)))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same'))
         model.add(Conv2D(256, (5, 5), activation='relu', padding='same'))
@@ -145,8 +154,13 @@ class Network:
         return model
 
     def vggnet16(self, x_train, y_train, x_test, y_test, nb_classes):
+        if x_train[0].shape != (224, 224, 3):
+            amt = int((224-x_train[0].shape[0])/2)
+            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+
         model = Sequential()
-        model.add(Conv2D(64, (3, 3), padding='same', input_shape=(56, 56, 1), activation='relu'))
+        model.add(Conv2D(64, (3, 3), padding='same', input_shape=(224, 224, 3), activation='relu'))
         model.add(BatchNormalization())
         model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
         model.add(BatchNormalization())
@@ -205,7 +219,12 @@ class Network:
         return y
 
     def resnet10(self, x_train, y_train, x_test, y_test, nb_classes):
-        inputs = Input(shape=(32, 32, 3))
+        if x_train[0].shape != (224, 224, 3):
+            amt = int((224 - x_train[0].shape[0]) / 2)
+            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+
+        inputs = Input(shape=(224, 224, 3)) # changed this
         x = Conv2D(64, kernel_size=3, strides=1, padding="same")(inputs)
         x = BatchNormalization()(x)
         x = ReLU()(x)
@@ -585,7 +604,7 @@ class Dataset:
             y_train, y_test = to_categorical(y_train, num_classes=nb_classes), to_categorical(y_test, num_classes=nb_classes)
 
         elif dataset_name == 'caltech-101':
-            data_dir = '../datasets/caltech-101/101_ObjectCategories'
+            data_dir = 'examples/caltech-101/caltech-101/101_ObjectCategories'
             batch_size = 32
             img_size = (224, 224)
             train_ds = image_dataset_from_directory(data_dir,
@@ -602,6 +621,7 @@ class Dataset:
                                                   batch_size=batch_size)
 
             num_classes = len(train_ds.class_names)
+            nb_classes = num_classes
             x_train, y_train = self.dataset_to_numpy(train_ds)
             x_test, y_test = self.dataset_to_numpy(val_ds)
             y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
