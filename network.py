@@ -3,7 +3,7 @@ from keras.datasets import fashion_mnist, mnist, cifar10, cifar100, imdb, reuter
 from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, GlobalAveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D, LSTM, Embedding, ReLU, Add
 from keras.applications import VGG16, ResNet50
 from keras.preprocessing import image_dataset_from_directory
-from keras.utils import to_categorical, pad_sequences
+from keras.utils import to_categorical, pad_sequences, Sequence
 from keras.models import load_model, Model
 from keras import Sequential, layers
 from argparse import ArgumentParser
@@ -111,7 +111,10 @@ class Network:
         outputs = Dense(nb_classes, activation='softmax')(x)
         model = Model(inputs, outputs)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=100)
+        train_gen = DataGenerator(x_train, y_train, 32)
+        test_gen = DataGenerator(x_test, y_test, 32)
+        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=100)
         model.save('examples/' + self._dataset_name + '/mobilenetv2-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
@@ -147,8 +150,11 @@ class Network:
         model.add(Dense(nb_classes, activation='softmax'))
 
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, mode='max', verbose=0)
-        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), callbacks=[early_stopping])
+        #early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, mode='max', verbose=0)
+        train_gen = DataGenerator(x_train, y_train, 32)
+        test_gen = DataGenerator(x_test, y_test, 32)
+        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        #model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), callbacks=[early_stopping])
         model.save('examples/' + self._dataset_name + '/alexnet-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
@@ -198,7 +204,10 @@ class Network:
         model.add(Dense(nb_classes, activation='softmax'))
 
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+        train_gen = DataGenerator(x_train, y_train, 32)
+        test_gen = DataGenerator(x_test, y_test, 32)
+        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        #model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
         model.save('examples/' + self._dataset_name + '/vggnet16-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
@@ -237,7 +246,11 @@ class Network:
         outputs = Dense(nb_classes, activation='softmax')(x)
         model = Model(inputs, outputs)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        model.fit(x_train, y_train, batch_size=64, validation_data=(x_test, y_test), epochs=100)
+
+        train_gen = DataGenerator(x_train, y_train, 32)
+        test_gen = DataGenerator(x_test, y_test, 32)
+        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        #model.fit(x_train, y_train, batch_size=64, validation_data=(x_test, y_test), epochs=100)
         model.save('examples/' + self._dataset_name + '/resnet10-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
@@ -462,8 +475,20 @@ class Network:
         print("Model saved")
         return model
 
+class DataGenerator(Sequence):
+    def __init__(self, x_set, y_set, batch_size):
+        self.x, self.y = x_set, y_set
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return int(np.ceil(len(self.x) / float(self.batch_size)))
+
+    def __getitem__(self, idx):
+        batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+        batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+        return batch_x, batch_y
+
 class Dataset:
-# mnist, fmnist, kmnist, emnist, cifar10, cifar100
 
     def __init__(self, dataset_name):
         # mnist/data/mnist_train_inputs.npy

@@ -65,15 +65,16 @@ class DMAACC:
     def set_ParHAC_threshold(self, threshold):
         self._PH_threshold = threshold
 
+    def set_selection_fraction(self, fraction):
+        self._selection_fraction = fraction
+
     def __get_outputs_count(self):
         return self._model.layers[-1].units
 
-    def set_selection_fraction(self, selection_fraction):
-        self._selection_fraction = selection_fraction
 
     def run_vanilla(self):
         df_vanilla = pd.DataFrame(
-            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Selection_Fraction', 'Mutate_time',
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
                      'Number_of_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
         start = time.time()
         m_start = time.time()
@@ -88,7 +89,7 @@ class DMAACC:
         ms.run()
         ms_end = time.time()
         df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                             self._mutation_level, self._selection_fraction, m_end - m_start, len(mutations),
+                             self._mutation_level, m_end - m_start, len(mutations),
                              ms.get_mutation_score(), ms_end - ms_start, ms_end - start]
 
         del mg, mutations, ms
@@ -99,7 +100,7 @@ class DMAACC:
 
     def run_approach_1(self):
         df_clusters = pd.DataFrame(
-            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Selection_Fraction', 'Mutate_time',
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
                      'Number_of_Mutants', 'Number_of_Clusters', 'Clusters_per_layer',
                      'Max_Cluster_Sz', 'Min_Cluster_Sz', 'Mean_Cluster_Sz',
                      'Cluster_time', 'Mutation_Score', 'MS_time', 'Total_time']) # Clusters_per_layer -> Neurons_per_Cluster_param
@@ -130,7 +131,7 @@ class DMAACC:
         print('Number of mutations: ' + str(len(mutations)))
         print('Average size of clusters per layer: ' + str(self._cluster_size))
         df_clusters.loc[len(df_clusters.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                           self._mutation_level, self._selection_fraction, m_end - m_start, len(mutations), len(clusters),
+                           self._mutation_level, m_end - m_start, len(mutations), len(clusters),
                            self._cluster_size, unit_clustering.get_max_cluster_size(),
                            unit_clustering.get_min_cluster_size(), unit_clustering.get_mean_cluster_size(),
                            c_end - c_start, ms.get_mutation_score(), ms_end - ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
@@ -153,7 +154,7 @@ class DMAACC:
                            self._dataset.get_dataset_name(), self._mutation_level)
 
         if 'cluster' in self._mutation_level:
-            df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level', 'Selection_Fraction',
+            df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
                                                'Mutate_time', 'Number_of_Mutants', 'ParHAC_Threshold',
                                                'Number_of_Clusters', 'Max_Cluster_Sz', 'Min_Cluster_Sz',
                                                'Mean_Cluster_Sz', 'Cluster_time',
@@ -168,7 +169,7 @@ class DMAACC:
             ms.cluster_run()
             ms_end = time.time()
             df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(), len(graph_clusters),
-                               'cluster', self._selection_fraction, m_end-start, len(mutations), self._PH_threshold, ms.get_cluster_amount(),
+                               'cluster', m_end-start, len(mutations), self._PH_threshold, ms.get_cluster_amount(),
                                unit_clustering.get_max_cluster_size(), unit_clustering.get_min_cluster_size(),
                                unit_clustering.get_mean_cluster_size(), c_end-c_start, ms.get_mutation_score(),
                                ms_end-ms_start, (c_end-c_start)+(ms_end-ms_start)+(m_end-start)]
@@ -179,6 +180,7 @@ class DMAACC:
 
         return df_cluster
 
+# ---------------------------------------------------------------------------------------------------------------------------------
     def run_one_by_one_v(self):
         obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
         model_utils = utils.ModelUtils()
@@ -195,7 +197,7 @@ class DMAACC:
         for layer_index, layer in enumerate(self._model.layers):
             weights = layer.get_weights().copy()
 
-            if not (len(weights) == 0):  # weights with length of zero shouldn't be edited
+            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
                 layer_name = type(layer).__name__
                 CONV2D = layer_name == 'Conv2D'
                 DENSE = layer_name == 'Dense'
@@ -266,10 +268,10 @@ class DMAACC:
 
 
         df_vanilla = pd.DataFrame(
-            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Selection_Fraction', 'Mutate_time',
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time', 'Selection_Fraction'
                      'Number_of_Mutants', 'Number_of_Used_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
         df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                                                 self._mutation_level, self._selection_fraction, m_time, amt, used_amt,
+                                                 self._mutation_level, m_time, self._selection_fraction, amt, used_amt,
                                                  mutation_score_n, ms_time, m_time + ms_time]
 
         del obo, ms, original_x, original_y, weights, layer, mutant_layer_dict
@@ -322,14 +324,14 @@ class DMAACC:
                 self._model.layers[li].set_weights(weights)
 
         # reduces the mutants tested using the selection fraction
-        amt = 0
-        for key, value in mutant_layer_dict.items():
-            amt += len(value)
+        # amt = 0
+        # for key, value in mutant_layer_dict.items():
+        #     amt += len(value)
 
-        if self._selection_fraction != 1.0:
-            for key, value in mutant_layer_dict.items():
-                new_value = np.random.choice(value, int(self._selection_fraction * len(value)), replace=False)
-                mutant_layer_dict[key] = new_value
+        # if self._selection_fraction != 1.0:
+        #     for key, value in mutant_layer_dict.items():
+        #         new_value = np.random.choice(value, int(self._selection_fraction * len(value)), replace=False)
+        #         mutant_layer_dict[key] = new_value
 
         ms_mutants_kc = 0
         used_amt = 0
@@ -343,12 +345,12 @@ class DMAACC:
         print('Mutation Score' + str(mutation_score_n))
 
         df_clusters = pd.DataFrame(
-            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Selection_Fraction', 'Mutate_time',
-                     'Number_of_Mutants', 'Number_of_Used_Mutants', 'Number_of_Clusters', 'Neurons_per_Cluster_param',
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+                     'Number_of_Mutants', 'Number_of_Clusters', 'Neurons_per_Cluster_param',
                      'Max_Cluster_Sz', 'Min_Cluster_Sz', 'Mean_Cluster_Sz',
-                     'Cluster_time', 'Mutation_Score', 'MS_time', 'Total_time'])
+                     'Cluster_time', 'Mutation_Score', 'MS_time', 'Total_time']) #'Number_of_Used_Mutants', amt,
         df_clusters.loc[len(df_clusters.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-                                                   self._mutation_level, self._selection_fraction, m_time, amt, used_amt, len(clusters),
+                                                   self._mutation_level, m_time,  used_amt, len(clusters),
                                                    self._cluster_size, unit_clustering.get_max_cluster_size(),
                                                    unit_clustering.get_min_cluster_size(),
                                                    unit_clustering.get_mean_cluster_size(),
@@ -393,7 +395,7 @@ class DMAACC:
         for layer_index, layer in enumerate(self._model.layers):
             weights = layer.get_weights().copy()
 
-            if not (len(weights) == 0):  # weights with length of zero shouldn't be edited
+            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
                 layer_name = type(layer).__name__
                 CONV2D = layer_name == 'Conv2D'
                 DENSE = layer_name == 'Dense'
@@ -447,10 +449,10 @@ class DMAACC:
             mutation_len += len(l)
 
         # reduces the mutants tested using the selection fraction
-        if self._selection_fraction != 1.0:
-            for key, value in mutant_layer_dict.items():
-                new_value = np.random.choice(value, int(self._selection_fraction*len(value)), replace=False)
-                mutant_layer_dict[key] = new_value
+        # if self._selection_fraction != 1.0:
+        #     for key, value in mutant_layer_dict.items():
+        #         new_value = np.random.choice(value, int(self._selection_fraction*len(value)), replace=False)
+        #         mutant_layer_dict[key] = new_value
 
         # now cluster this one model
         c_start = time.time()
@@ -484,14 +486,14 @@ class DMAACC:
             mutation_len_tested += len(l)
 
 
-        df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level', 'Selection_Fraction',
-                                           'Mutate_time', 'Number_of_Mutants', 'Number_of_Used_Mutants', 'ParHAC_Threshold',
-                                           'Number_of_Clusters', 'Max_Cluster_Sz', 'Min_Cluster_Sz',
-                                           'Mean_Cluster_Sz', 'Cluster_time',
+        df_cluster = pd.DataFrame(columns=['Model_Type', 'Dataset', 'Mutable_Layers', 'Mutation_Level',
+                                           'Mutate_time', 'Number_of_Mutants', 'Number_of_Used_Mutants',
+                                           'ParHAC_Threshold', 'Number_of_Clusters', 'Max_Cluster_Sz',
+                                           'Min_Cluster_Sz', 'Mean_Cluster_Sz', 'Cluster_time',
                                            'Mutation_Score', 'MS_time', 'Total_time'])
         df_cluster.loc[len(df_cluster.index)] = [self._model_filename, self._dataset.get_dataset_name(),
                                                  len(g_clusters),
-                                                 'cluster', self._selection_fraction, m_time, mutation_len, mutation_len_tested,
+                                                 'cluster', m_time, mutation_len, mutation_len_tested,
                                                  self._PH_threshold,
                                                  obo.get_cluster_amount(),
                                                  obo.get_max_cluster_size(),
@@ -505,7 +507,104 @@ class DMAACC:
         gc.collect()
 
         return df_cluster
-
-
+    #
+    # def run_one_by_one_random_selection(self):
+    #     obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
+    #     model_utils = utils.ModelUtils()
+    #     nb_classes = self._dataset.get_nb_classes()
+    #     ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
+    #                        self._dataset.get_dataset_name(), self._mutation_level)
+    #
+    #     mutant_layer_dict = {}
+    #     m_time = 0
+    #     ms_time = 0
+    #
+    #     original_x, original_y = ms.get_correct_test_points()
+    #
+    #     for layer_index, layer in enumerate(self._model.layers):
+    #         weights = layer.get_weights().copy()
+    #
+    #         if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
+    #             layer_name = type(layer).__name__
+    #             CONV2D = layer_name == 'Conv2D'
+    #             DENSE = layer_name == 'Dense'
+    #             enum = 0
+    #             if CONV2D:
+    #                 enum = weights[0].shape[3]
+    #             elif DENSE:
+    #                 enum = weights[0].shape[1]
+    #             else:
+    #                 print("Layer type: " + str(layer_name) + ' (not mutated)')
+    #                 pass
+    #             for neuron_index in range(enum):
+    #                 for mo_type in ['CW', 'NAI', 'NEB']:
+    #                     # gc.collect()
+    #                     # mutant_model = model_utils.model_copy(self._model, '')
+    #                     # this will take the model and turn it into one mutant based on the neuron
+    #                     m_start = time.time()
+    #                     # I think the errors are coming from the fact that the mutated model is already used to find the
+    #                     #   'correct' points, so that means the incorrect predictions are filtered out.
+    #                     self._model = obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
+    #                                                  self._mutation_percent)
+    #                     m_end = time.time()
+    #                     m_time += m_end - m_start
+    #                     t = tuple((layer_index, neuron_index))
+    #                     # do by layer bc we cluster by layer
+    #                     # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
+    #                     # self._model.compile(optimizer='adam',
+    #                     #                  loss='categorical_crossentropy',
+    #                     #                  metrics=['accuracy'])
+    #                     ms.set_mutations([self])
+    #                     ms_start = time.time()
+    #                     ms.run_obo(original_x, original_y)
+    #                     killed_classes = ms.get_killed_classes()
+    #                     ms_end = time.time()
+    #                     ms_time += ms_end - ms_start
+    #                     if layer_index in mutant_layer_dict:
+    #                         mutant_layer_dict[layer_index] += [
+    #                             MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+    #                     else:
+    #                         mutant_layer_dict[layer_index] = [
+    #                             MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+    #                     # resets
+    #                     layer.set_weights(weights)
+    #
+    #     # To get mutation score I must
+    #     #   get the killed classes from each Minimutant, divide it by nb_classes,
+    #     #   and then add that for each Minimutant for a model.
+    #
+    #     amt = 0
+    #     for key, value in mutant_layer_dict.items():
+    #         amt += len(value)
+    #
+    #     if self._selection_fraction != 1.0:
+    #         for key, value in mutant_layer_dict.items():
+    #             new_value = np.random.choice(value, int(self._selection_fraction * len(value)), replace=False)
+    #             mutant_layer_dict[key] = new_value
+    #
+    #     ms_mutants_kc = 0
+    #     used_amt = 0
+    #     mutation_len = 0
+    #     for key, value in mutant_layer_dict.items():
+    #         used_amt += len(value)
+    #         for minimutant in value:
+    #             ms_mutants_kc += minimutant.get_killed_classes()
+    #
+    #     mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+    #     print('Mutation Score' + str(mutation_score_n))
+    #
+    #
+    #     df_vanilla = pd.DataFrame(
+    #         columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+    #                  'Number_of_Mutants', 'Selection_Fraction', 'Number_of_Used_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
+    #     df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
+    #                                              self._mutation_level, m_time, amt, self._selection_fraction, used_amt,
+    #                                              mutation_score_n, ms_time, m_time + ms_time]
+    #
+    #     del obo, ms, original_x, original_y, weights, layer, mutant_layer_dict
+    #     clear_session()
+    #     gc.collect()
+    #
+    #     return df_vanilla
 
 

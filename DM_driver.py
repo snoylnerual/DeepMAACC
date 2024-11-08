@@ -63,19 +63,15 @@ if __name__ == "__main__":
         df2, df3 = dmaacc_run.run_approach_2()
 
     # ========================================================================================================
-    elif run_type == 'vanilla':
+    elif run_type == 'vanilla': # normal mutation analysis
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
-        dmaacc_run.set_selection_fraction(1.0)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
         model_list = [['fcnn-mnist.keras]', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
                       ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
-            #           ['resnet18-cifar10.keras'],
-            #           ['resnet18-cifar100.keras'],
-            #           ['resnet18-svhn.keras']]
-        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']  # , 'cifar10', 'cifar100', 'svhn']
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']
 
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -101,11 +97,10 @@ if __name__ == "__main__":
                             df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
     # ========================================================================================================
-    elif run_type == 'approach1':
+    elif run_type == 'approach1': # neuron clustering
         dmaacc_run = DMAACC()
         # dmaacc_run.set_one_unit_per_cluster(args.one_unit_per_cluster.lower() == 'true')
         dmaacc_run.set_mutation_percent(0.1)
-        dmaacc_run.set_selection_fraction(1.0)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
         n_list = [2, 4, 6, 8, 10]
 
@@ -113,11 +108,8 @@ if __name__ == "__main__":
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
-                      ['resnet18-cifar10.keras'],
-                      ['resnet18-cifar100.keras'],
-                      ['resnet18-svhn.keras']]
-        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']
 
         for ds, model_l in zip(dataset_list, model_list):
             d = Dataset(ds)
@@ -145,21 +137,17 @@ if __name__ == "__main__":
                                 df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
     # ========================================================================================================
-    elif run_type == 'approach2':
+    elif run_type == 'approach2': # mutant clustering
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        dmaacc_run.set_selection_fraction(1.0)
         #.3,.4,.5,.6,.7
         PH_thresholds = [n / 100 for n in range(30, 75, 5)]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
-                      ['fcnn-emnist.keras', 'lenet5-emnist.keras'],
-                      ['resnet18-cifar10.keras'],
-                      ['resnet18-cifar100.keras'],
-                      ['resnet18-svhn.keras']]
-        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist', 'cifar10', 'cifar100', 'svhn']
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']
 
         for i in range(6):
             for ds, model_l in zip(dataset_list, model_list):
@@ -182,6 +170,45 @@ if __name__ == "__main__":
                         elif arch_type == 'one_by_one':
                             df_clusters = dmaacc_run.run_one_by_one_a2()
                             csvfile = 'experiments_approach2_obo.csv'
+                            if os.path.isfile(csvfile):
+                                df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                            else:
+                                df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+
+    # ========================================================================================================
+    elif run_type == 'approach3': # random mutation selection
+        dmaacc_run = DMAACC()
+        dmaacc_run.set_mutation_level("neuron")
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        selection_fractions = [0.25, 0.5, 0.75]
+        model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
+                      ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
+        dataset_list = ['mnist', 'fmnist', 'kmnist', 'emnist']
+
+        for i in range(6):
+            for ds, model_l in zip(dataset_list, model_list):
+                d = Dataset(ds)
+                dmaacc_run.set_dataset(d)
+                for model_n in model_l:
+                    dmaacc_run.load_model('examples/' + ds + '/' + model_n)
+                    model_current = dmaacc_run.get_model()
+                    for fraction in selection_fractions:
+                        dmaacc_run.set_selection_fraction(fraction)
+                        dmaacc_run.set_mutation_level(['cluster'])  # , 'neuron'])
+
+                        if arch_type == 'all':
+                            pass
+                            # df_clusters = dmaacc_run.run_approach_3()
+                            # csvfile = 'experiments_approach3.csv'
+                            # if os.path.isfile(csvfile):
+                            #     df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                            # else:
+                            #     df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+                        elif arch_type == 'one_by_one':
+                            df_clusters = dmaacc_run.run_one_by_one_v() # what changed is that we change the selection fraction
+                            csvfile = 'experiments_approach3_obo.csv'
                             if os.path.isfile(csvfile):
                                 df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                             else:
