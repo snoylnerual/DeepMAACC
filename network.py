@@ -95,12 +95,12 @@ class Network:
         return y
 
     def mobilenetv2(self, x_train, y_train, x_test, y_test, nb_classes):
-        if x_train[0].shape != (224, 224, 3):
-            amt = int((224-x_train[0].shape[0])/2)
-            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-
-        inputs = Input(shape=(224, 224, 3))
+        # if x_train[0].shape != (224, 224, 3):
+        #     amt = int((224-x_train[0].shape[0])/2)
+        #     x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        #     x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        ishape = np.squeeze(x_train[0]).shape
+        inputs = Input(shape=ishape)
         x = Conv2D(32, kernel_size=3, strides=2, padding='same')(inputs)
         x = BatchNormalization()(x)
         x = ReLU()(x)
@@ -111,23 +111,25 @@ class Network:
         outputs = Dense(nb_classes, activation='softmax')(x)
         model = Model(inputs, outputs)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        train_gen = DataGenerator(x_train, y_train, 32)
-        test_gen = DataGenerator(x_test, y_test, 32)
-        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        # train_gen = DataGenerator(x_train, y_train, 32)
+        # test_gen = DataGenerator(x_test, y_test, 32)
+        # model.fit(train_gen, validation_data=test_gen, epochs=100)
         #model.fit(x_train, y_train, validation_data=(x_test, y_test), epochs=100)
+        model.fit(np.squeeze(x_train), np.squeeze(y_train), epochs=100, validation_data=(np.squeeze(x_test), np.squeeze(y_test)))
+
         model.save('examples/' + self._dataset_name + '/mobilenetv2-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
     # ------------------------------------------------------------------------------------------------------------------
 
     def alexnet(self, x_train, y_train, x_test, y_test, nb_classes):
-        if x_train[0].shape != (224, 224, 3):
-            amt = int((224-x_train[0].shape[0])/2)
-            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-
+        # if x_train[0].shape != (224, 224, 3):
+        #     amt = int((224-x_train[0].shape[0])/2)
+        #     x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        #     x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        ishape = np.squeeze(x_train[0]).shape
         model = Sequential()
-        model.add(Conv2D(96, (11, 11), strides=(4, 4), activation='relu', padding='same', input_shape=(224, 224, 3)))
+        model.add(Conv2D(96, (11, 11), strides=(4, 4), activation='relu', padding='same', input_shape=ishape))#input_shape=(224, 224, 3)))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same'))
         model.add(Conv2D(256, (5, 5), activation='relu', padding='same'))
@@ -150,23 +152,27 @@ class Network:
         model.add(Dense(nb_classes, activation='softmax'))
 
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        #early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, mode='max', verbose=0)
-        train_gen = DataGenerator(x_train, y_train, 32)
-        test_gen = DataGenerator(x_test, y_test, 32)
-        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, mode='max', verbose=0)
+        # train_gen = DataGenerator(x_train, y_train, 32)
+        # test_gen = DataGenerator(x_test, y_test, 32)
+        # model.fit(train_gen, validation_data=test_gen, epochs=100)
         #model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test), callbacks=[early_stopping])
+        model.fit(np.squeeze(x_train), np.squeeze(y_train), epochs=100, validation_data=(np.squeeze(x_test), np.squeeze(y_test)), callbacks=[early_stopping])
+
         model.save('examples/' + self._dataset_name + '/alexnet-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
 
     def vggnet16(self, x_train, y_train, x_test, y_test, nb_classes):
-        if x_train[0].shape != (224, 224, 3):
-            amt = int((224-x_train[0].shape[0])/2)
-            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        # if x_train[0].shape != (224, 224, 3):
+        #     amt = int((224-x_train[0].shape[0])/2)
+        #     x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        #     x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        ishape = np.squeeze(x_train[0]).shape
+        print(ishape)
 
         model = Sequential()
-        model.add(Conv2D(64, (3, 3), padding='same', input_shape=(224, 224, 3), activation='relu'))
+        model.add(Conv2D(64, (3, 3), padding='same', input_shape=ishape, activation='relu'))
         model.add(BatchNormalization())
         model.add(Conv2D(64, (3, 3), padding='same', activation='relu'))
         model.add(BatchNormalization())
@@ -204,10 +210,10 @@ class Network:
         model.add(Dense(nb_classes, activation='softmax'))
 
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-        train_gen = DataGenerator(x_train, y_train, 32)
-        test_gen = DataGenerator(x_test, y_test, 32)
-        model.fit(train_gen, validation_data=test_gen, epochs=100)
-        #model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+        #train_gen = DataGenerator(np.squeeze(x_train), np.squeeze(y_train), 32)
+        #test_gen = DataGenerator(np.squeeze(x_test), np.squeeze(y_test), 32)
+        #model.fit(train_gen, validation_data=test_gen, epochs=100)
+        model.fit(np.squeeze(x_train), np.squeeze(y_train), epochs=100, validation_data=(np.squeeze(x_test), np.squeeze(y_test)))
         model.save('examples/' + self._dataset_name + '/vggnet16-' + self._dataset_name + '.keras')
         print("Model saved")
         return model
@@ -228,12 +234,13 @@ class Network:
         return y
 
     def resnet10(self, x_train, y_train, x_test, y_test, nb_classes):
-        if x_train[0].shape != (224, 224, 3):
-            amt = int((224 - x_train[0].shape[0]) / 2)
-            x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
-            x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        # if x_train[0].shape != (224, 224, 3):
+        #     amt = int((224 - x_train[0].shape[0]) / 2)
+        #     x_train = np.pad(np.squeeze(x_train), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
+        #     x_test = np.pad(np.squeeze(x_test), ((0, 0), (amt, amt), (amt, amt), (0, 0)), mode='constant')
 
-        inputs = Input(shape=(224, 224, 3)) # changed this
+        ishape = np.squeeze(x_train[0]).shape
+        inputs = Input(shape=ishape) # changed this
         x = Conv2D(64, kernel_size=3, strides=1, padding="same")(inputs)
         x = BatchNormalization()(x)
         x = ReLU()(x)
@@ -247,10 +254,12 @@ class Network:
         model = Model(inputs, outputs)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-        train_gen = DataGenerator(x_train, y_train, 32)
-        test_gen = DataGenerator(x_test, y_test, 32)
-        model.fit(train_gen, validation_data=test_gen, epochs=100)
+        # train_gen = DataGenerator(x_train, y_train, 32)
+        # test_gen = DataGenerator(x_test, y_test, 32)
+        # model.fit(train_gen, validation_data=test_gen, epochs=100)
         #model.fit(x_train, y_train, batch_size=64, validation_data=(x_test, y_test), epochs=100)
+
+        model.fit(np.squeeze(x_train), np.squeeze(y_train), epochs=100, batch_size=64, validation_data=(np.squeeze(x_test), np.squeeze(y_test)))
         model.save('examples/' + self._dataset_name + '/resnet10-' + self._dataset_name + '.keras')
         print("Model saved")
         return model

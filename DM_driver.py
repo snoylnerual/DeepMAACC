@@ -13,9 +13,11 @@ import pandas as pd
 
 
 if __name__ == "__main__":
-    run_type = 'vanilla'
+    # run_type = 'vanilla'
     # run_type = 'approach1'
-    #run_type = 'approach2'
+    # run_type = 'approach2'
+    # run_type = 'approach3'
+    run_type = 'approach4'
 
     # arch_type = 'all'
     arch_type = 'one_by_one'
@@ -67,7 +69,7 @@ if __name__ == "__main__":
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
         dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        model_list = [['fcnn-mnist.keras]', 'lenet5-mnist.keras'],
+        model_list = [['fcnn-mnist.keras:', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
                       ['fcnn-emnist.keras', 'lenet5-emnist.keras']]
@@ -79,7 +81,7 @@ if __name__ == "__main__":
             for model_n in model_l:
                 dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                 model_current = dmaacc_run.get_model()
-                for i in range(15):
+                for i in range(30):
                     dmaacc_run.set_mutation_level('neuron')
                     if arch_type == 'all':
                         df_clusters = dmaacc_run.run_vanilla()
@@ -196,7 +198,6 @@ if __name__ == "__main__":
                     model_current = dmaacc_run.get_model()
                     for fraction in selection_fractions:
                         dmaacc_run.set_selection_fraction(fraction)
-                        dmaacc_run.set_mutation_level(['cluster'])  # , 'neuron'])
 
                         if arch_type == 'all':
                             pass
@@ -209,6 +210,45 @@ if __name__ == "__main__":
                         elif arch_type == 'one_by_one':
                             df_clusters = dmaacc_run.run_one_by_one_v() # what changed is that we change the selection fraction
                             csvfile = 'experiments_approach3_obo.csv'
+                            if os.path.isfile(csvfile):
+                                df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                            else:
+                                df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+
+    # ========================================================================================================
+    elif run_type == 'approach4':  # boundary sampling
+        dmaacc_run = DMAACC()
+        dmaacc_run.set_mutation_level("neuron")
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        #selection_fractions = [0.25, 0.5, 0.75]
+        boundary_sampling_thresholds = [1.5, 2, 5, 8, 10, 12, 15, 20, 100, 1000, 10000]
+        model_list = [['fcnn-mnist.keras']]#, 'lenet5-mnist.keras'],
+                      #['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
+                      #['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
+                      #['fcnn-emnist.keras', 'lenet5-emnist.keras']]
+        dataset_list = ['mnist']#, 'fmnist', 'kmnist', 'emnist']
+
+        for i in range(6):
+            for ds, model_l in zip(dataset_list, model_list):
+                d = Dataset(ds)
+                dmaacc_run.set_dataset(d)
+                for model_n in model_l:
+                    dmaacc_run.load_model('examples/' + ds + '/' + model_n)
+                    model_current = dmaacc_run.get_model()
+                    for threshold in boundary_sampling_thresholds:
+                        dmaacc_run.set_boundary_threshold(threshold)
+
+                        if arch_type == 'all':
+                            pass
+                            # df_clusters = dmaacc_run.run_approach_3()
+                            # csvfile = 'experiments_approach3.csv'
+                            # if os.path.isfile(csvfile):
+                            #     df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                            # else:
+                            #     df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+                        elif arch_type == 'one_by_one':
+                            df_clusters = dmaacc_run.run_one_by_one_boundary_sampling()
+                            csvfile = 'experiments_approach4_obo.csv'
                             if os.path.isfile(csvfile):
                                 df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
                             else:

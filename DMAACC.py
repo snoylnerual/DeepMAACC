@@ -27,6 +27,7 @@ class DMAACC:
         self._dataset = None
         self._PH_threshold = 0.5
         self._selection_fraction = 1.0
+        self._boundary_threshold = 10
 
     def load_model(self, model_filename):
         self._model_filename = model_filename
@@ -67,6 +68,9 @@ class DMAACC:
 
     def set_selection_fraction(self, fraction):
         self._selection_fraction = fraction
+
+    def set_boundary_threshold(self, threshold):
+        self._boundary_threshold = threshold
 
     def __get_outputs_count(self):
         return self._model.layers[-1].units
@@ -235,10 +239,10 @@ class DMAACC:
                         ms_time += ms_end - ms_start
                         if layer_index in mutant_layer_dict:
                             mutant_layer_dict[layer_index] += [
-                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
                         else:
                             mutant_layer_dict[layer_index] = [
-                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
                         # resets
                         layer.set_weights(weights)
 
@@ -263,12 +267,12 @@ class DMAACC:
             for minimutant in value:
                 ms_mutants_kc += minimutant.get_killed_classes()
 
-        mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+        mutation_score_n = ms_mutants_kc / (used_amt * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
 
 
         df_vanilla = pd.DataFrame(
-            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time', 'Selection_Fraction'
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time', 'Selection_Fraction',
                      'Number_of_Mutants', 'Number_of_Used_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
         df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
                                                  self._mutation_level, m_time, self._selection_fraction, amt, used_amt,
@@ -341,7 +345,7 @@ class DMAACC:
             for minimutant in value:
                 ms_mutants_kc += minimutant.get_killed_classes()
 
-        mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+        mutation_score_n = ms_mutants_kc / (used_amt * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
 
         df_clusters = pd.DataFrame(
@@ -507,104 +511,110 @@ class DMAACC:
         gc.collect()
 
         return df_cluster
-    #
-    # def run_one_by_one_random_selection(self):
-    #     obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
-    #     model_utils = utils.ModelUtils()
-    #     nb_classes = self._dataset.get_nb_classes()
-    #     ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
-    #                        self._dataset.get_dataset_name(), self._mutation_level)
-    #
-    #     mutant_layer_dict = {}
-    #     m_time = 0
-    #     ms_time = 0
-    #
-    #     original_x, original_y = ms.get_correct_test_points()
-    #
-    #     for layer_index, layer in enumerate(self._model.layers):
-    #         weights = layer.get_weights().copy()
-    #
-    #         if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
-    #             layer_name = type(layer).__name__
-    #             CONV2D = layer_name == 'Conv2D'
-    #             DENSE = layer_name == 'Dense'
-    #             enum = 0
-    #             if CONV2D:
-    #                 enum = weights[0].shape[3]
-    #             elif DENSE:
-    #                 enum = weights[0].shape[1]
-    #             else:
-    #                 print("Layer type: " + str(layer_name) + ' (not mutated)')
-    #                 pass
-    #             for neuron_index in range(enum):
-    #                 for mo_type in ['CW', 'NAI', 'NEB']:
-    #                     # gc.collect()
-    #                     # mutant_model = model_utils.model_copy(self._model, '')
-    #                     # this will take the model and turn it into one mutant based on the neuron
-    #                     m_start = time.time()
-    #                     # I think the errors are coming from the fact that the mutated model is already used to find the
-    #                     #   'correct' points, so that means the incorrect predictions are filtered out.
-    #                     self._model = obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
-    #                                                  self._mutation_percent)
-    #                     m_end = time.time()
-    #                     m_time += m_end - m_start
-    #                     t = tuple((layer_index, neuron_index))
-    #                     # do by layer bc we cluster by layer
-    #                     # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
-    #                     # self._model.compile(optimizer='adam',
-    #                     #                  loss='categorical_crossentropy',
-    #                     #                  metrics=['accuracy'])
-    #                     ms.set_mutations([self])
-    #                     ms_start = time.time()
-    #                     ms.run_obo(original_x, original_y)
-    #                     killed_classes = ms.get_killed_classes()
-    #                     ms_end = time.time()
-    #                     ms_time += ms_end - ms_start
-    #                     if layer_index in mutant_layer_dict:
-    #                         mutant_layer_dict[layer_index] += [
-    #                             MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
-    #                     else:
-    #                         mutant_layer_dict[layer_index] = [
-    #                             MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type)]
-    #                     # resets
-    #                     layer.set_weights(weights)
-    #
-    #     # To get mutation score I must
-    #     #   get the killed classes from each Minimutant, divide it by nb_classes,
-    #     #   and then add that for each Minimutant for a model.
-    #
-    #     amt = 0
-    #     for key, value in mutant_layer_dict.items():
-    #         amt += len(value)
-    #
-    #     if self._selection_fraction != 1.0:
-    #         for key, value in mutant_layer_dict.items():
-    #             new_value = np.random.choice(value, int(self._selection_fraction * len(value)), replace=False)
-    #             mutant_layer_dict[key] = new_value
-    #
-    #     ms_mutants_kc = 0
-    #     used_amt = 0
-    #     mutation_len = 0
-    #     for key, value in mutant_layer_dict.items():
-    #         used_amt += len(value)
-    #         for minimutant in value:
-    #             ms_mutants_kc += minimutant.get_killed_classes()
-    #
-    #     mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
-    #     print('Mutation Score' + str(mutation_score_n))
-    #
-    #
-    #     df_vanilla = pd.DataFrame(
-    #         columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
-    #                  'Number_of_Mutants', 'Selection_Fraction', 'Number_of_Used_Mutants', 'Mutation_Score', 'MS_time', 'Total_time'])
-    #     df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
-    #                                              self._mutation_level, m_time, amt, self._selection_fraction, used_amt,
-    #                                              mutation_score_n, ms_time, m_time + ms_time]
-    #
-    #     del obo, ms, original_x, original_y, weights, layer, mutant_layer_dict
-    #     clear_session()
-    #     gc.collect()
-    #
-    #     return df_vanilla
+
+    def run_one_by_one_boundary_sampling(self):
+        obo = OBO(self._model_filename, self._model, self._dataset, self._dataset.get_dataset_name(), 'neuron')
+        model_utils = utils.ModelUtils()
+        nb_classes = self._dataset.get_nb_classes()
+        ms = MutationScore(self._model_filename.split('.')[0], self._model, [], self._dataset,
+                           self._dataset.get_dataset_name(), self._mutation_level)
+
+        mutant_layer_dict = {}
+        m_time = 0
+        ms_time = 0
+        original_x, original_y = ms.get_correct_test_points()
+        new_x = []
+        new_y = []
+        print(np.array(original_x).shape)
+        print(np.array(original_x)[0].shape)
+        predictions = self._model.predict(np.array(original_x))
+        print(predictions.shape)
+        for i in range(len(original_x)):
+            class1 = np.argmax(predictions[i])
+            t = predictions[i][class1]
+            predictions[i][class1] = 0
+            class2 = np.argmax(predictions[i])
+            predictions[i][class1] = t
+            if predictions[i][class1]/predictions[i][class2] < self._boundary_threshold:
+                new_x.append(original_x[i])
+                new_y.append(original_y[i])
+
+        for layer_index, layer in enumerate(self._model.layers):
+            weights = layer.get_weights().copy()
+
+            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
+                layer_name = type(layer).__name__
+                CONV2D = layer_name == 'Conv2D'
+                DENSE = layer_name == 'Dense'
+                enum = 0
+                if CONV2D:
+                    enum = weights[0].shape[3]
+                elif DENSE:
+                    enum = weights[0].shape[1]
+                else:
+                    print("Layer type: " + str(layer_name) + ' (not mutated)')
+                    pass
+                for neuron_index in range(enum):
+                    for mo_type in ['CW', 'NAI', 'NEB']:
+                        # gc.collect()
+                        # mutant_model = model_utils.model_copy(self._model, '')
+                        # this will take the model and turn it into one mutant based on the neuron
+                        m_start = time.time()
+                        # I think the errors are coming from the fact that the mutated model is already used to find the
+                        #   'correct' points, so that means the incorrect predictions are filtered out.
+                        self._model = obo.mutate_one(self._model, layer_name, layer_index, neuron_index, mo_type,
+                                                     self._mutation_percent)
+                        m_end = time.time()
+                        m_time += m_end - m_start
+                        t = tuple((layer_index, neuron_index))
+                        # do by layer bc we cluster by layer
+                        # TODO: if we have to reduce more, this is a place to reduce where we only hold the info from one layer
+                        # self._model.compile(optimizer='adam',
+                        #                  loss='categorical_crossentropy',
+                        #                  metrics=['accuracy'])
+                        ms.set_mutations([self])
+                        ms_start = time.time()
+                        ms.run_obo(new_x, new_y)
+                        killed_classes = ms.get_killed_classes()
+                        ms_end = time.time()
+                        ms_time += ms_end - ms_start
+                        if layer_index in mutant_layer_dict:
+                            mutant_layer_dict[layer_index] += [
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
+                        else:
+                            mutant_layer_dict[layer_index] = [
+                                MiniMutant(t, layer_index, neuron_index, killed_classes, mo_type, ms_end - ms_start)]
+                        # resets
+                        layer.set_weights(weights)
+
+        # To get mutation score I must
+        #   get the killed classes from each Minimutant, divide it by nb_classes,
+        #   and then add that for each Minimutant for a model.
+
+        amt = 0
+        ms_mutants_kc = 0
+        mutation_len = 0
+        for key, value in mutant_layer_dict.items():
+            amt += len(value)
+            for minimutant in value:
+                ms_mutants_kc += minimutant.get_killed_classes()
+
+        mutation_score_n = ms_mutants_kc / (amt * self._dataset.get_nb_classes())
+        print('Mutation Score' + str(mutation_score_n))
+        print('Dataset_Size: ' + str(len(self._dataset.get_y_test())))
+        print('New_Dataset_Size: ' + str(len(new_y)))
+
+        df_vanilla = pd.DataFrame(
+            columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
+                     'Number_of_Mutants', 'Correct_Dataset_Size', 'New_Dataset_Size', 'Threshold', 'Mutation_Score', 'MS_time', 'Total_time'])
+        df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
+                                                 self._mutation_level, m_time, amt, len(original_y),  len(new_y), self._boundary_threshold,
+                                                 mutation_score_n, ms_time, m_time + ms_time]
+
+        del obo, ms, new_x, new_y, weights, layer, mutant_layer_dict
+        clear_session()
+        gc.collect()
+
+        return df_vanilla
 
 
