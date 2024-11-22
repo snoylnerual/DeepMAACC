@@ -15,17 +15,27 @@ import numpy as np
 rcParams['font.weight'] = 'bold'
 plt.rc('font',family='Times New Roman')
 
-vanilla = pd.read_csv('../outputs/data/final_vanilla_experiments.csv')
+vanilla = pd.read_csv('outputs/data/van.csv') #('outputs/data/final_vanilla_experiments.csv') #
 vl = len(vanilla.index)
-approach1 = pd.read_csv('../outputs/data/final_approach1_experiments.csv')
+approach1 = pd.read_csv('outputs/data/final_approach1_experiments.csv')
 a1l = len(approach1.index)
 a1_params = pd.unique(approach1['Neurons_per_Cluster_param'])
 a1_params.sort()
-approach2 = pd.read_csv('../outputs/data/final_approach2_experiments.csv')
+approach2 = pd.read_csv('outputs/data/final_approach2_experiments.csv')
 a2l = len(approach2.index)
 #a2_params = pd.unique(approach2['ParHAC_Threshold'])
 a2_params = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]
 a2_models = pd.unique(approach2['Model_Type'])
+approach3 = pd.read_csv('outputs/data/exp3_fcnn_lenet5.csv')
+a3l = len(approach2.index)
+#a3_params = pd.unique(approach2['Selection_Fraction'])
+a3_params = [0.25, 0.5, 0.75]
+a3_models = pd.unique(approach2['Model_Type'])
+approach4 = pd.read_csv('outputs/data/exp4_fcnn_lenet5_wBSS.csv')
+a4l = len(approach2.index)
+#a4_params = pd.unique(approach2['Threshold'])
+a4_params = [1.5, 2, 5, 8, 10, 12, 15, 20, 100, 1000, 10000]
+a4_models = pd.unique(approach2['Model_Type'])
 
 avg_vanilla = {}
 v_models = pd.unique(vanilla['Model_Type'])
@@ -57,23 +67,52 @@ for model in a2_models:
 				   approach2[approach2['ParHAC_Threshold'] == n][approach2['Model_Type'] == model]['MS_time'].mean()]))]
 	avg_a2[model] = temp
 
+avg_a3 = {}
+for model in a3_models:
+	temp = []
+	for n in a3_params:
+		temp += [tuple((n,
+				   [approach3[approach3['Selection_Fraction'] == n][approach3['Model_Type'] == model]['Mutate_time'].mean(),
+				   approach3[approach3['Selection_Fraction'] == n][approach3['Model_Type'] == model]['Mutation_Score'].mean(),
+				   approach3[approach3['Selection_Fraction'] == n][approach3['Model_Type'] == model]['MS_time'].mean()]))]
+	avg_a3[model] = temp
+
+avg_a4 = {}
+for model in a4_models:
+	temp = []
+	for n in a4_params:
+		temp += [tuple((n,
+				   [approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Mutate_time'].mean(),
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Mutation_Score'].mean(),
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['MS_time'].mean(),
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Boundary_Sample_Time'].mean()]))]
+	avg_a4[model] = temp
+
 
 config = {
-	'Print_Averages': True,
-	'Approach1_Speedup_FCNN': True,
-	'Approach1_Speedup_LeNet-5': True,
-	'Approach2_Speedup_FCNN': True,
-	'Approach2_Speedup_LeNet-5': True,
-	'Approach1_MSE_FCNN': True,
-	'Approach1_MSE_LeNet-5': True,
-	'Approach2_MSE_FCNN': True,
-	'Approach2_MSE_LeNet-5': True,
-	'Box_and_Whisker_Speedup': True,
-	'Box_and_Whisker_MSE': True,
-	'Approach2_NumofClusters': True,
-	'Approach1&2_NumofClusters': True,
-	'Approach1&2_NumofTestedMutants': True,
-	'Model_Info': True
+	'Print_Averages': False,
+	'Approach1_Speedup_FCNN': False,
+	'Approach1_Speedup_LeNet-5': False,
+	'Approach2_Speedup_FCNN': False,
+	'Approach2_Speedup_LeNet-5': False,
+	'Approach1_MSE_FCNN': False,
+	'Approach1_MSE_LeNet-5': False,
+	'Approach2_MSE_FCNN': False,
+	'Approach2_MSE_LeNet-5': False,
+	'Box_and_Whisker_Speedup': False,
+	'Box_and_Whisker_MSE': False,
+	'Approach2_NumofClusters': False,
+	'Approach1&2_NumofClusters': False,
+	'Approach1&2_NumofTestedMutants': False,
+	'Model_Info': False,
+	'Approach3_MSE_FCNN': True,
+	'Approach3_MSE_LeNet-5': True,
+	'Approach3_Speedup_FCNN': True,
+	'Approach3_Speedup_LeNet-5': True,
+	'Approach4_MSE_FCNN': True,
+	'Approach4_MSE_LeNet-5': True,
+	'Approach4_Speedup_FCNN': True,
+	'Approach4_Speedup_LeNet-5': True
 }
 
 # ===================================================================================================================================
@@ -164,7 +203,7 @@ if config['Approach1_Speedup_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/NeuronC_Speedup_FCNN.pdf')
+	plt.savefig('outputs/NeuronC_Speedup_FCNN.pdf')
 
 # ------------------------------------------------------------------------------------------------------------
 
@@ -200,7 +239,7 @@ if config['Approach1_Speedup_LeNet-5']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/NeuronC_Speedup_LeNet-5.pdf')
+	plt.savefig('outputs/NeuronC_Speedup_LeNet-5.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -238,7 +277,7 @@ if config['Approach2_Speedup_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/MutantC_Speedup_FCNN.pdf')
+	plt.savefig('outputs/MutantC_Speedup_FCNN.pdf')
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -273,7 +312,7 @@ if config['Approach2_Speedup_LeNet-5']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/MutantC_Speedup_LeNet-5.pdf')
+	plt.savefig('outputs/MutantC_Speedup_LeNet-5.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -310,7 +349,7 @@ if config['Approach1_MSE_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/NeuronC_MSE_FCNN.pdf')
+	plt.savefig('outputs/NeuronC_MSE_FCNN.pdf')
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -345,7 +384,7 @@ if config['Approach1_MSE_LeNet-5']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/NeuronC_MSE_LeNet-5.pdf')
+	plt.savefig('outputs/NeuronC_MSE_LeNet-5.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -382,7 +421,7 @@ if config['Approach2_MSE_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/MutantC_MSE_FCNN.pdf')
+	plt.savefig('outputs/MutantC_MSE_FCNN.pdf')
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -417,7 +456,7 @@ if config['Approach2_MSE_LeNet-5']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/MutantC_MSE_LeNet-5.pdf')
+	plt.savefig('outputs/MutantC_MSE_LeNet-5.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -469,7 +508,7 @@ if config['Box_and_Whisker_Speedup']:
 			for median, color in zip(bp['medians'], colors):
 				median.set_color(color)
 
-			plt.savefig('../outputs/BoxPlot_Speedup_'+model.split("/")[-1].split(".")[0].upper().replace('LENET', 'LeNet-')+'.pdf')
+			plt.savefig('outputs/BoxPlot_Speedup_'+model.split("/")[-1].split(".")[0].upper().replace('LENET', 'LeNet-')+'.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -521,7 +560,7 @@ if config['Box_and_Whisker_MSE']:
 			for median, color in zip(bp['medians'], colors):
 				median.set_color(color)
 
-			plt.savefig('../outputs/BoxPlot_MSE_'+model.split("/")[-1].split(".")[0].upper().replace('LENET', 'LeNet-')+'.pdf')
+			plt.savefig('outputs/BoxPlot_MSE_'+model.split("/")[-1].split(".")[0].upper().replace('LENET', 'LeNet-')+'.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -557,7 +596,7 @@ if config['Approach2_NumofClusters']:
 	plt.legend(title='Models')
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/MutantC_NumofClusters.pdf')
+	plt.savefig('outputs/MutantC_NumofClusters.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -609,7 +648,7 @@ if config['Approach1&2_NumofClusters']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/Neuron_and_MutantC_NumofClusters.pdf')
+	plt.savefig('outputs/Neuron_and_MutantC_NumofClusters.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -664,7 +703,7 @@ if config['Approach1&2_NumofTestedMutants']:
 	plt.legend(title='Models', fontsize=19, loc='center right', bbox_to_anchor=(1, 0.35))
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('../outputs/Neuron_and_MutantC_NumofTestedMutants.pdf')
+	plt.savefig('outputs/Neuron_and_MutantC_NumofTestedMutants.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -676,17 +715,312 @@ if config['Model_Info']:
 			  'fcnn-kmnist.keras', 'lenet5-kmnist.keras', 'fcnn-emnist.keras', 'lenet5-emnist.keras']
 
 	for m in models:
-		s_model = load_model('../inputs/' + m.split('-')[1].split('.')[0] + '/' + m)
+		s_model = load_model('inputs/' + m.split('-')[1].split('.')[0] + '/' + m)
 		print(m)
 		print(s_model.summary())
-		x_train = np.load('../inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_train_inputs.npy')
+		x_train = np.load('inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_train_inputs.npy')
 		print(len(x_train))
-		y_train = np.load('../inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_train_outputs.npy')
+		y_train = np.load('inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_train_outputs.npy')
 		print(len(y_train))
-		x_test = np.load('../inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_test_inputs.npy')
+		x_test = np.load('inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_test_inputs.npy')
 		print(len(x_test))
-		y_test = np.load('../inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_test_outputs.npy')
+		y_test = np.load('inputs/' + m.split('-')[1].split('.')[0]  + '/data/' + m.split('-')[1].split('.')[0]  + '_test_outputs.npy')
 		print(len(y_test))
 		hist = s_model.evaluate(x_test, y_test)
 		print(hist)
 		print()
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach3_Mutation_Score_Error
+
+if config['Approach3_MSE_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a3.items():
+		if 'fcnn' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average MSE of Approach3 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xticks(np.array(a3_params))
+	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach3_MSE_FCNN.pdf')
+
+	# ------------------------------------------------------------------------------------------------------------
+
+if config['Approach3_MSE_LeNet-5']:
+	label, X, Y = [], [], []
+	for key, value in avg_a3.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average MSE of Approach2 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xticks(np.array(a3_params))
+	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach3_MSE_LeNet-5.pdf')
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach3_Speedup
+
+if config['Approach3_Speedup_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a3.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average speedup of Approach3 across all lenet5 models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices],
+				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+	plt.xticks(np.array(a3_params))
+	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
+	plt.ylabel('Speedup', fontsize=24, weight='bold')
+	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach3_Speedup_FCNN.pdf')
+
+	# ------------------------------------------------------------------------------------------------------------
+
+	if config['Approach3_Speedup_LeNet-5']:
+		label, X, Y = [], [], []
+		for key, value in avg_a3.items():
+			if 'lenet' in key:
+				for thing in value:
+					label += [key]
+					X += [thing[0]]
+					Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+		X = np.array(X)
+		Y = np.array(Y)
+		labels = np.array(label)
+		print("Average speedup of Approach1 across all lenet5 models and all parameters is: " + str(Y.mean()))
+
+		valid_indices = ~np.isnan(Y)
+		X_clean = X[valid_indices]
+		Y_clean = Y[valid_indices]
+		labels_clean = labels[valid_indices]
+		unique_labels = np.unique(labels_clean)
+
+		plt.figure(figsize=(10, 6))
+		for label in unique_labels:
+			indices = labels_clean == label
+			plt.plot(X_clean[indices], Y_clean[indices],
+					 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+		plt.xticks(np.array(a3_params))
+		plt.xlabel('Neurons per Cluster', fontsize=24, weight='bold')
+		plt.ylabel('Speedup', fontsize=24, weight='bold')
+		# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+		plt.legend(title='Models', fontsize=22)
+		plt.grid(True)
+		plt.tight_layout()
+		plt.savefig('outputs/Approach3_Speedup_LeNet-5.pdf')
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach4_Mutation_Score_Error
+
+if config['Approach4_MSE_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'fcnn' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average MSE of Approach3 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach4_MSE_FCNN.pdf')
+
+# ------------------------------------------------------------------------------------------------------------
+
+if config['Approach4_MSE_LeNet-5']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average MSE of Approach2 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach4_MSE_LeNet-5.pdf')
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach4_Speedup
+
+if config['Approach4_Speedup_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average speedup of Approach3 across all lenet5 models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices],
+				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
+	plt.ylabel('Speedup', fontsize=24, weight='bold')
+	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach4_Speedup_FCNN.pdf')
+
+	# ------------------------------------------------------------------------------------------------------------
+
+if config['Approach4_Speedup_LeNet-5']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average speedup of Approach1 across all lenet5 models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices],
+				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('Neurons per Cluster', fontsize=24, weight='bold')
+	plt.ylabel('Speedup', fontsize=24, weight='bold')
+	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Approach4_Speedup_LeNet-5.pdf')
+
+# ===================================================================================================================================
+# ===================================================================================================================================

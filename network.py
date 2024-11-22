@@ -2,7 +2,7 @@ from keras.callbacks import EarlyStopping
 from keras.datasets import fashion_mnist, mnist, cifar10, cifar100, imdb, reuters
 from keras.layers import Dense, Flatten, Conv2D, AveragePooling2D, GlobalAveragePooling2D, BatchNormalization, Resizing, MaxPooling2D, Dropout, Input, Activation, ZeroPadding2D, LSTM, Embedding, ReLU, Add
 from keras.applications import VGG16, ResNet50
-from keras.preprocessing import image_dataset_from_directory
+#from keras.preprocessing import image_dataset_from_directory
 from keras.utils import to_categorical, pad_sequences, Sequence
 from keras.models import load_model, Model
 from keras import Sequential, layers
