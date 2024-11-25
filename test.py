@@ -36,15 +36,19 @@ print('end')
 print(x_train.shape)
 print(x_test.shape)
 
-# xtrain = np.load('examples/caltech-101/data/caltech-101_train_inputs.npy')
-# ytrain = np.load('examples/caltech-101/data/caltech-101_train_outputs.npy')
-# xtest = np.load('examples/caltech-101/data/caltech-101_test_inputs.npy')
-# ytest = np.load('examples/caltech-101/data/caltech-101_test_outputs.npy')
-#
-# print(xtrain.shape)
-# print(ytrain.shape)
-# print(xtest.shape)
-# print(ytest.shape)
+xtrain = np.load('examples/caltech-101/data/caltech-101_train_inputs.npy')
+ytrain = np.load('examples/caltech-101/data/caltech-101_train_outputs.npy')
+xtest = np.load('examples/caltech-101/data/caltech-101_test_inputs.npy')
+ytest = np.load('examples/caltech-101/data/caltech-101_test_outputs.npy')
+
+print(xtrain.shape)
+print(ytrain.shape)
+print(xtest.shape)
+print(ytest.shape)
+
+count = [0] * 101
+for i in ytrain:
+    
 
 
 

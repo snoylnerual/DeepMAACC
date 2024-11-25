@@ -85,7 +85,9 @@ for model in a4_models:
 				   [approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Mutate_time'].mean(),
 				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Mutation_Score'].mean(),
 				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['MS_time'].mean(),
-				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Boundary_Sample_Time'].mean()]))]
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Boundary_Sample_Time'].mean(),
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['Correct_Dataset_Size'].mean(),
+				   approach4[approach4['Threshold'] == n][approach4['Model_Type'] == model]['New_Dataset_Size'].mean()]))]
 	avg_a4[model] = temp
 
 
@@ -112,7 +114,9 @@ config = {
 	'Approach4_MSE_FCNN': True,
 	'Approach4_MSE_LeNet-5': True,
 	'Approach4_Speedup_FCNN': True,
-	'Approach4_Speedup_LeNet-5': True
+	'Approach4_Speedup_LeNet-5': True,
+	'Approach4_Dataset_FCNN': True,
+	'Approach4_Dataset_LeNet-5': True
 }
 
 # ===================================================================================================================================
@@ -741,7 +745,7 @@ if config['Approach3_MSE_FCNN']:
 			for thing in value:
 				label += [key]
 				X += [thing[0]]
-				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+				Y += [np.abs(float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1])))]
 	X = np.array(X)
 	Y = np.array(Y)
 	labels = np.array(label)
@@ -765,7 +769,7 @@ if config['Approach3_MSE_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('outputs/Approach3_MSE_FCNN.pdf')
+	plt.savefig('outputs/Random_Mutant_Selection_MSE_FCNN.pdf')
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -776,48 +780,11 @@ if config['Approach3_MSE_LeNet-5']:
 			for thing in value:
 				label += [key]
 				X += [thing[0]]
-				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+				Y += [np.abs(float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1])))]
 	X = np.array(X)
 	Y = np.array(Y)
 	labels = np.array(label)
-	print("Average MSE of Approach2 across all fcnn models and all parameters is: " + str(Y.mean()))
-
-	valid_indices = ~np.isnan(Y)
-	X_clean = X[valid_indices]
-	Y_clean = Y[valid_indices]
-	labels_clean = labels[valid_indices]
-	unique_labels = np.unique(labels_clean)
-
-	plt.figure(figsize=(10, 6))
-	for label in unique_labels:
-		indices = labels_clean == label
-		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
-
-	plt.xticks(np.array(a3_params))
-	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
-	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
-	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
-	plt.legend(title='Models', fontsize=22)
-	plt.grid(True)
-	plt.tight_layout()
-	plt.savefig('outputs/Approach3_MSE_LeNet-5.pdf')
-
-# ===================================================================================================================================
-# ===================================================================================================================================
-# Approach3_Speedup
-
-if config['Approach3_Speedup_FCNN']:
-	label, X, Y = [], [], []
-	for key, value in avg_a3.items():
-		if 'lenet' in key:
-			for thing in value:
-				label += [key]
-				X += [thing[0]]
-				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
-	X = np.array(X)
-	Y = np.array(Y)
-	labels = np.array(label)
-	print("Average speedup of Approach3 across all lenet5 models and all parameters is: " + str(Y.mean()))
+	print("Average MSE of Approach3 across all lenet models and all parameters is: " + str(Y.mean()))
 
 	valid_indices = ~np.isnan(Y)
 	X_clean = X[valid_indices]
@@ -833,12 +800,49 @@ if config['Approach3_Speedup_FCNN']:
 
 	plt.xticks(np.array(a3_params))
 	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Random_Mutant_Selection_MSE_LeNet-5.pdf')
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach3_Speedup
+
+if config['Approach3_Speedup_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a3.items():
+		if 'fcnn' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average speedup of Approach3 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xticks(np.array(a3_params))
+	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
 	plt.ylabel('Speedup', fontsize=24, weight='bold')
 	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('outputs/Approach3_Speedup_FCNN.pdf')
+	plt.savefig('outputs/Random_Mutant_Selection_Speedup_FCNN.pdf')
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -853,7 +857,7 @@ if config['Approach3_Speedup_FCNN']:
 		X = np.array(X)
 		Y = np.array(Y)
 		labels = np.array(label)
-		print("Average speedup of Approach1 across all lenet5 models and all parameters is: " + str(Y.mean()))
+		print("Average speedup of Approach3 across all lenet5 models and all parameters is: " + str(Y.mean()))
 
 		valid_indices = ~np.isnan(Y)
 		X_clean = X[valid_indices]
@@ -868,13 +872,13 @@ if config['Approach3_Speedup_FCNN']:
 					 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
 
 		plt.xticks(np.array(a3_params))
-		plt.xlabel('Neurons per Cluster', fontsize=24, weight='bold')
+		plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
 		plt.ylabel('Speedup', fontsize=24, weight='bold')
 		# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
 		plt.legend(title='Models', fontsize=22)
 		plt.grid(True)
 		plt.tight_layout()
-		plt.savefig('outputs/Approach3_Speedup_LeNet-5.pdf')
+		plt.savefig('outputs/Random_Mutant_Selection_Speedup_LeNet-5.pdf')
 
 # ===================================================================================================================================
 # ===================================================================================================================================
@@ -887,11 +891,11 @@ if config['Approach4_MSE_FCNN']:
 			for thing in value:
 				label += [key]
 				X += [thing[0]]
-				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+				Y += [np.abs(float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1])))]
 	X = np.array(X)
 	Y = np.array(Y)
 	labels = np.array(label)
-	print("Average MSE of Approach3 across all fcnn models and all parameters is: " + str(Y.mean()))
+	print("Average MSE of Approach4 across all fcnn models and all parameters is: " + str(Y.mean()))
 
 	valid_indices = ~np.isnan(Y)
 	X_clean = X[valid_indices]
@@ -904,6 +908,8 @@ if config['Approach4_MSE_FCNN']:
 		indices = labels_clean == label
 		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
 
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
 	plt.xticks(np.array(a4_params))
 	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
 	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
@@ -911,7 +917,9 @@ if config['Approach4_MSE_FCNN']:
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('outputs/Approach4_MSE_FCNN.pdf')
+	plt.savefig('outputs/Boundary_Sampling_MSE_FCNN.pdf')
+	print(X)
+	print(Y)
 
 # ------------------------------------------------------------------------------------------------------------
 
@@ -922,11 +930,53 @@ if config['Approach4_MSE_LeNet-5']:
 			for thing in value:
 				label += [key]
 				X += [thing[0]]
-				Y += [float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1]))]
+				Y += [np.abs(float(((avg_vanilla[key][1]) - (thing[1][1])) / (avg_vanilla[key][1])))]
 	X = np.array(X)
 	Y = np.array(Y)
 	labels = np.array(label)
-	print("Average MSE of Approach2 across all fcnn models and all parameters is: " + str(Y.mean()))
+	print("Average MSE of Approach4 across all lenet-5 models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices],
+				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
+	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
+	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Boundary_Sampling_MSE_LeNet-5.pdf')
+	print(X)
+	print(Y)
+
+# ===================================================================================================================================
+# ===================================================================================================================================
+# Approach4_Speedup
+
+if config['Approach4_Speedup_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'fcnn' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((avg_vanilla[key][2] - (thing[1][2]+thing[1][3])) / avg_vanilla[key][2])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average speedup of Approach4 across all fcnn models and all parameters is: " + str(Y.mean()))
 
 	valid_indices = ~np.isnan(Y)
 	X_clean = X[valid_indices]
@@ -939,52 +989,18 @@ if config['Approach4_MSE_LeNet-5']:
 		indices = labels_clean == label
 		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
 
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
 	plt.xticks(np.array(a4_params))
 	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
-	plt.ylabel('Mutation Score Error', fontsize=24, weight='bold')
-	# plt.title('Approach 2: How much mutation score is lost when using mutant clustering vs vanilla mutation testing?')
-	plt.legend(title='Models', fontsize=22)
-	plt.grid(True)
-	plt.tight_layout()
-	plt.savefig('outputs/Approach4_MSE_LeNet-5.pdf')
-
-# ===================================================================================================================================
-# ===================================================================================================================================
-# Approach4_Speedup
-
-if config['Approach4_Speedup_FCNN']:
-	label, X, Y = [], [], []
-	for key, value in avg_a4.items():
-		if 'lenet' in key:
-			for thing in value:
-				label += [key]
-				X += [thing[0]]
-				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
-	X = np.array(X)
-	Y = np.array(Y)
-	labels = np.array(label)
-	print("Average speedup of Approach3 across all lenet5 models and all parameters is: " + str(Y.mean()))
-
-	valid_indices = ~np.isnan(Y)
-	X_clean = X[valid_indices]
-	Y_clean = Y[valid_indices]
-	labels_clean = labels[valid_indices]
-	unique_labels = np.unique(labels_clean)
-
-	plt.figure(figsize=(10, 6))
-	for label in unique_labels:
-		indices = labels_clean == label
-		plt.plot(X_clean[indices], Y_clean[indices],
-				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
-
-	plt.xticks(np.array(a4_params))
-	plt.xlabel('Selection Fraction', fontsize=24, weight='bold')
 	plt.ylabel('Speedup', fontsize=24, weight='bold')
 	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('outputs/Approach4_Speedup_FCNN.pdf')
+	plt.savefig('outputs/Boundary_Sampling_Speedup_FCNN.pdf')
+	print(X)
+	print(Y)
 
 	# ------------------------------------------------------------------------------------------------------------
 
@@ -995,11 +1011,11 @@ if config['Approach4_Speedup_LeNet-5']:
 			for thing in value:
 				label += [key]
 				X += [thing[0]]
-				Y += [float((avg_vanilla[key][2] - thing[1][2]) / avg_vanilla[key][2])]
+				Y += [float((avg_vanilla[key][2] - (thing[1][2]+thing[1][3])) / avg_vanilla[key][2])]
 	X = np.array(X)
 	Y = np.array(Y)
 	labels = np.array(label)
-	print("Average speedup of Approach1 across all lenet5 models and all parameters is: " + str(Y.mean()))
+	print("Average speedup of Approach4 across all lenet5 models and all parameters is: " + str(Y.mean()))
 
 	valid_indices = ~np.isnan(Y)
 	X_clean = X[valid_indices]
@@ -1013,14 +1029,94 @@ if config['Approach4_Speedup_LeNet-5']:
 		plt.plot(X_clean[indices], Y_clean[indices],
 				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
 
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
 	plt.xticks(np.array(a4_params))
-	plt.xlabel('Neurons per Cluster', fontsize=24, weight='bold')
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
 	plt.ylabel('Speedup', fontsize=24, weight='bold')
 	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
 	plt.legend(title='Models', fontsize=22)
 	plt.grid(True)
 	plt.tight_layout()
-	plt.savefig('outputs/Approach4_Speedup_LeNet-5.pdf')
+	plt.savefig('outputs/Boundary_Sampling_Speedup_LeNet-5.pdf')
+	print(X)
+	print(Y)
 
 # ===================================================================================================================================
 # ===================================================================================================================================
+if config['Approach4_Dataset_FCNN']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'fcnn' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((thing[1][5])/thing[1][4])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average sample set percentage of Approach4 across all fcnn models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices], label=label.split('/')[-1].split('.')[0].upper())
+
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
+	plt.ylabel('BSS size percentage', fontsize=24, weight='bold')
+	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Boundary_Sampling_BSS_Size_FCNN.pdf')
+	print(X)
+	print(Y)
+
+	# ------------------------------------------------------------------------------------------------------------
+
+if config['Approach4_Dataset_LeNet-5']:
+	label, X, Y = [], [], []
+	for key, value in avg_a4.items():
+		if 'lenet' in key:
+			for thing in value:
+				label += [key]
+				X += [thing[0]]
+				Y += [float((thing[1][5])/thing[1][4])]
+	X = np.array(X)
+	Y = np.array(Y)
+	labels = np.array(label)
+	print("Average sample set percentage of Approach4 across all lenet5 models and all parameters is: " + str(Y.mean()))
+
+	valid_indices = ~np.isnan(Y)
+	X_clean = X[valid_indices]
+	Y_clean = Y[valid_indices]
+	labels_clean = labels[valid_indices]
+	unique_labels = np.unique(labels_clean)
+
+	plt.figure(figsize=(10, 6))
+	for label in unique_labels:
+		indices = labels_clean == label
+		plt.plot(X_clean[indices], Y_clean[indices],
+				 label=label.split('/')[-1].split('.')[0].upper().replace('LENET', 'LeNet-'))
+
+	plt.xscale('log')
+	plt.xticks(rotation='vertical')
+	plt.xticks(np.array(a4_params))
+	plt.xlabel('BSS Threshold', fontsize=24, weight='bold')
+	plt.ylabel('BSS size percentage', fontsize=24, weight='bold')
+	# plt.title('Approach 1: How much speedup you gain when using neuron clustering vs vanilla mutation testing?')
+	plt.legend(title='Models', fontsize=22)
+	plt.grid(True)
+	plt.tight_layout()
+	plt.savefig('outputs/Boundary_Sampling_BSS_Size_LeNet-5.pdf')
+	print(X)
+	print(Y)

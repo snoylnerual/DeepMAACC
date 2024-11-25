@@ -158,7 +158,7 @@ class DMAACC:
             used_amt += len(value)
             for minimutant in value:
                 ms_mutants_kc += minimutant.get_killed_classes()
-                mutants_used_time = minimutant.get_ms_time()
+                mutants_used_time += minimutant.get_ms_time()
 
         mutation_score_n = ms_mutants_kc / (used_amt * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
@@ -419,6 +419,7 @@ class DMAACC:
         new_x = []
         new_y = []
         predictions = self._model.predict(np.array(original_x))
+        count = [0] * self._dataset.get_nb_classes()
         for i in range(len(original_x)):
             class1 = np.argmax(predictions[i])
             t = predictions[i][class1]
@@ -426,9 +427,17 @@ class DMAACC:
             class2 = np.argmax(predictions[i])
             predictions[i][class1] = t
             if predictions[i][class1]/predictions[i][class2] < self._boundary_threshold:
+                count[class1] += 1
                 new_x.append(original_x[i])
                 new_y.append(original_y[i])
         bs_end = time.time()
+        valid = True
+        for i, v in enumerate(count):
+            if i == 0 and self._dataset.get_nb_classes() > 10:
+                continue
+            if v <= 0:
+                valid = False
+
 
         for layer_index, layer in enumerate(self._model.layers):
             weights = layer.get_weights().copy()
@@ -497,11 +506,11 @@ class DMAACC:
 
         df_vanilla = pd.DataFrame(
             columns=['Model_Type', 'Dataset', 'Mutation_Level', 'Mutate_time',
-                     'Number_of_Mutants', 'Correct_Dataset_Size', 'New_Dataset_Size', 'Threshold', 'Mutation_Score',
+                     'Number_of_Mutants', 'Correct_Dataset_Size', 'New_Dataset_Size', 'Threshold', 'Valid', 'Mutation_Score',
                      'MS_time', 'Boundary_Sample_Time', 'Total_time'])
         df_vanilla.loc[len(df_vanilla.index)] = [self._model_filename, self._dataset.get_dataset_name(),
                                                  self._mutation_level, m_time, amt, len(original_y),  len(new_y),
-                                                 self._boundary_threshold,
+                                                 self._boundary_threshold, valid,
                                                  mutation_score_n, ms_time, bs_end - bs_start, m_time + ms_time + (bs_end - bs_start)]
 
         del obo, ms, new_x, new_y, weights, layer, mutant_layer_dict
