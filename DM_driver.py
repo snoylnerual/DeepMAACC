@@ -15,9 +15,9 @@ import pandas as pd
 if __name__ == "__main__":
     # run_type = 'vanilla'
     # run_type = 'neuron_clustering'
-    # run_type = 'mutant_clustering'
+    run_type = 'mutant_clustering'
     # run_type = 'random_mutation_selection'
-    run_type = 'boundary_sampling'
+    # run_type = 'boundary_sampling'
 
     # arch_type = 'all'
     arch_type = 'one_by_one'
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     if run_type == 'vanilla': # normal mutation analysis
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
-        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB', 'WS', 'NS'])
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     elif run_type == 'neuron_clustering':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_percent(0.1)
-        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB', 'WS', 'NS'])
         n_list = [2, 4, 6, 8, 10]
 
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
@@ -84,8 +84,9 @@ if __name__ == "__main__":
     elif run_type == 'mutant_clustering':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("cluster")
-        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        PH_thresholds = [n / 100 for n in range(30, 75, 5)]
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB', 'WS', 'NS'])
+        # [n / 100 for n in range(30, 75, 5)]
+        PH_thresholds = [0.1, 0.2, 0.3, 0.35, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 0.9, 0.99]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
@@ -114,8 +115,8 @@ if __name__ == "__main__":
     elif run_type == 'random_mutation_selection':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("neuron")
-        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        selection_fractions = [0.25, 0.5, 0.75]
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB', 'WS', 'NS'])
+        selection_fractions = [0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 0.75, 0.8, 0.9, 0.99] #[0.25, 0.5, 0.75]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras'],
                       ['fcnn-kmnist.keras', 'lenet5-kmnist.keras'],
@@ -143,8 +144,8 @@ if __name__ == "__main__":
     elif run_type == 'boundary_sampling':
         dmaacc_run = DMAACC()
         dmaacc_run.set_mutation_level("neuron")
-        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB'])
-        boundary_sampling_thresholds = [1.5, 2, 5, 8, 10, 12, 15, 20, 100, 1000, 10000]
+        dmaacc_run.set_mutator_list(['CW', 'NAI', 'NEB', 'WS', 'NS'])
+        boundary_sampling_thresholds = [0.5, 1.5, 2, 5, 8, 10, 12, 15, 20, 100]#, 1000, 10000]
         model_list = [['fcnn-mnist.keras', 'lenet5-mnist.keras',
                        'alexnet2-mnist.keras', 'vggnet162-mnist.keras'],
                       ['fcnn-fmnist.keras', 'lenet5-fmnist.keras',

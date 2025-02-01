@@ -3,8 +3,7 @@ from scipy.spatial import distance
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import AgglomerativeClustering
 import numpy as np
-
-
+import copy
 
 class OBO:
     def __init__(self, model_name, model, dataset, dataset_name, mutation_level):
@@ -60,10 +59,37 @@ class OBO:
                     elif layer_name == 'Dense':
                         input_neuron_indices = [n for n in range(val_shape[0])]
                         weights[0][input_neuron_indices, neuron_index] = 0
+        elif mo_type == 'WS':
+            if layer_name == 'Conv2D':
+                np.random.shuffle(weights[0][:, :, :, neuron_index])
+            elif layer_name == 'Dense':
+                # print(weights[0][:, :, :, neuron_index])
+                # print([weights[0][:, :, :, neuron_index]])
+                np.random.shuffle(weights[0][:, neuron_index])
+                # print('WS')
+                # either use that or create a new list where they are all switched
 
+        elif mo_type == 'NS':
+            # this should just switch the weights in between two neurons in one layer
+            if layer_name == 'Conv2D':
+                random_neuron_index = np.random.randint(0, len(weights[0][neuron_index]))  # return a number between start and end (both included)
+                temp_weights = copy.deepcopy(weights[0][:, :, :, neuron_index])
+                temp_bias = weights[1][neuron_index]
+                weights[0][:, :, :, neuron_index] = weights[0][:, :, :, random_neuron_index]
+                weights[0][:, :, :, random_neuron_index] = temp_weights
+                weights[1][neuron_index] = weights[1][random_neuron_index]
+                weights[1][random_neuron_index] = temp_bias
+            elif layer_name == 'Dense':
+                random_neuron_index = np.random.randint(0,len(weights[0][neuron_index])) # return a number between start and end (both included)
+                temp_weights = copy.deepcopy(weights[0][:, neuron_index])
+                temp_bias = weights[1][neuron_index]
+                weights[0][:, neuron_index] = weights[0][:, random_neuron_index]
+                weights[0][:, random_neuron_index] = temp_weights
+                weights[1][neuron_index] = weights[1][random_neuron_index]
+                weights[1][random_neuron_index] = temp_bias
         model.layers[layer_index].set_weights(weights)
         self._mutant_number += 1
-        print(mo_type + "Mutant number " + str(self._mutant_number))
+        print(mo_type + " Mutant number " + str(self._mutant_number))
         return model
 
 
@@ -119,9 +145,10 @@ class OBO:
         cluster_size_list = []
         layer_cluster_list = []
         offset = amounts.pop(0)
+        temp = []
         for cluster_indices in list_of_clusters:
             print(cluster_indices)
-            temp = []
+            #temp = []
             if cluster_indices[0] >= amounts[0]:
                 offset = amounts.pop(0)
                 layer_cluster_list += [temp]
@@ -130,6 +157,7 @@ class OBO:
                 cluster_indices[i] -= offset
             temp += [cluster_indices]
             cluster_size_list.append(len(cluster_indices))
+        layer_cluster_list += [temp]
 
         self._cluster_amount = len(cluster_size_list)
         self._max_cluster_size = max(cluster_size_list)

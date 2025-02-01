@@ -264,6 +264,78 @@ class Network:
         print("Model saved")
         return model
 
+    # rnn-imdb ---------------------------------------------------------------------------------------------------------
+        import os
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+        import numpy as np  # noqa
+        from keras.datasets import imdb  # noqa
+        from keras.models import Sequential  # noqa
+        from keras.utils import to_categorical  # noqa
+        from keras.layers import Dense, LSTM, Embedding  # noqa
+        from keras_preprocessing.sequence import pad_sequences  # noqa
+        if __name__ == '__main__':
+            num_classes = 2
+            max_features = 20000
+            maxlen = 80
+            (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
+            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
+            model = Sequential()
+            model.add(Embedding(max_features, 128))
+            model.add(LSTM(64, return_sequences=True))
+            model.add(LSTM(64))
+            model.add(Dense(num_classes, activation='softmax'))
+            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+            with open('model-info.csv', 'w') as param_file:
+                param_file.write('#Parameters,#Train,#Test,#Classes,Test Accuracy\n')
+                param_file.write('%d,%d,%d,%d,%f\n' % (model.count_params(),
+                                                       len(x_train),
+                                                       len(x_test),
+                                                       num_classes,
+                                                       model.evaluate(x_test, y_test, verbose=0)[1]))
+            model.save('rnn-imdb.keras')
+            np.save('test_inputs.npy', x_test)
+            np.save('test_outputs.npy', np.argmax(y_test, axis=1))
+
+
+
+    # rnn-reuters -------------------------------------------------------------------------------------------------------
+        import os
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+        import numpy as np  # noqa
+        from keras.datasets import reuters  # noqa
+        from keras.models import Sequential  # noqa
+        from keras.utils import to_categorical  # noqa
+        from keras.layers import Dense, LSTM, Embedding  # noqa
+        from keras_preprocessing.sequence import pad_sequences  # noqa
+        if __name__ == '__main__':
+            num_classes = 90
+            max_features = 20000
+            maxlen = 80
+            (x_train, y_train), (x_test, y_test) = reuters.load_data(num_words=max_features)
+            y_train, y_test = to_categorical(y_train, num_classes), to_categorical(y_test, num_classes)
+            x_train, x_test = pad_sequences(x_train, maxlen=maxlen), pad_sequences(x_test, maxlen=maxlen)
+            model = Sequential()
+            model.add(Embedding(max_features, 128))
+            model.add(LSTM(64, return_sequences=True))
+            model.add(LSTM(64))
+            model.add(Dense(num_classes, activation='softmax'))
+            model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+            model.fit(x_train, y_train, epochs=100, validation_data=(x_test, y_test))
+            with open('model-info.csv', 'w') as param_file:
+                param_file.write('#Parameters,#Train,#Test,#Classes,Test Accuracy\n')
+                param_file.write('%d,%d,%d,%d,%f\n' % (model.count_params(),
+                                                       len(x_train),
+                                                       len(x_test),
+                                                       num_classes,
+                                                       model.evaluate(x_test, y_test, verbose=0)[1]))
+            model.save('rnn-reuters.keras')
+            np.save('test_inputs.npy', x_test)
+            np.save('test_outputs.npy', np.argmax(y_test, axis=1))
+
     # ------------------------------------------------------------------------------------------------------------------
 
     def resnet18(self, x_train, y_train, x_test, y_test, nb_classes):

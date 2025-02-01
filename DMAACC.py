@@ -1,11 +1,13 @@
 from mutation_generator import MutationGenerator
 from unit_clusterer import UnitClustering
 from mutation_score import MutationScore
+from keras.layers import Dense, Conv2D
 from keras.models import load_model
 from network import Dataset
 import numpy as np
 import pandas as pd
 import time
+
 
 from one_by_one import OBO, MiniMutant
 from keras.backend import clear_session
@@ -90,9 +92,11 @@ class DMAACC:
         original_x, original_y = ms.get_correct_test_points()
 
         for layer_index, layer in enumerate(self._model.layers):
+            if not isinstance(layer, Dense) and not isinstance(layer, Conv2D):
+                continue
             weights = layer.get_weights().copy()
 
-            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
+            if not (len(weights) == 0) and layer_index != 0 and layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
                 layer_name = type(layer).__name__
                 CONV2D = layer_name == 'Conv2D'
                 DENSE = layer_name == 'Dense'
@@ -105,7 +109,7 @@ class DMAACC:
                     print("Layer type: " + str(layer_name) + ' (not mutated)')
                     pass
                 for neuron_index in range(enum):
-                    for mo_type in ['CW', 'NAI', 'NEB']:
+                    for mo_type in self._mutator_list:
                         # gc.collect()
                         # mutant_model = model_utils.model_copy(self._model, '')
                         # this will take the model and turn it into one mutant based on the neuron
@@ -201,7 +205,7 @@ class DMAACC:
         for cluster in clusters:
             li = cluster.get_layer_index()
             weights = self._model.layers[li].get_weights().copy()
-            for mo_type in ['CW', 'NAI', 'NEB']:
+            for mo_type in self._mutator_list:
                 m_start = time.time()
                 obo.mutate_cluster(self._model, type(self._model.layers[li]).__name__, li, cluster, mo_type, self._mutation_percent)
                 m_end = time.time()
@@ -291,7 +295,7 @@ class DMAACC:
         for layer_index, layer in enumerate(self._model.layers):
             weights = layer.get_weights().copy()
 
-            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
+            if not (len(weights) == 0) and layer_index != 0 and layer_index != len(self._model.layers)-1:  # weights with length of zero shouldn't be edited
                 layer_name = type(layer).__name__
                 CONV2D = layer_name == 'Conv2D'
                 DENSE = layer_name == 'Dense'
@@ -310,7 +314,7 @@ class DMAACC:
                     print("Layer type: " + str(layer_name) + ' (not mutated)')
                     pass
                 for neuron_index in range(enum):
-                    for mo_type in ['CW', 'NAI', 'NEB']:
+                    for mo_type in self._mutator_list:
                         # gc.collect()
                         # mutant_model = model_utils.model_copy(self._model, '')
                         # this will take the model and turn it into one mutant based on the neuron
@@ -362,6 +366,7 @@ class DMAACC:
         #   then I get the killed classes from each Minimutant, divide it by nb_classes,
         #   and then add that for each Minimutant for a model.
 
+
         ms_mutants_kc = []
         ms_times = []
         mutant_cluster_lengths = []
@@ -377,6 +382,7 @@ class DMAACC:
         mutation_score_n = sum(ms_mutants_kc) / (sum(mutant_cluster_lengths) * self._dataset.get_nb_classes())
         print('Mutation Score' + str(mutation_score_n))
 
+        ms_time = sum(ms_times)
         mutation_len_tested = 0
         for l in mutant_layer_dict.values():
             mutation_len_tested += len(l)
@@ -443,7 +449,7 @@ class DMAACC:
             weights = layer.get_weights().copy()
 
             # weights with length of zero shouldn't be edited
-            if not (len(weights) == 0) and layer_index != 0 or layer_index != len(self._model.layers)-1:
+            if not (len(weights) == 0) and layer_index != 0 and layer_index != len(self._model.layers)-1:
                 layer_name = type(layer).__name__
                 CONV2D = layer_name == 'Conv2D'
                 DENSE = layer_name == 'Dense'
@@ -456,7 +462,7 @@ class DMAACC:
                     print("Layer type: " + str(layer_name) + ' (not mutated)')
                     pass
                 for neuron_index in range(enum):
-                    for mo_type in ['CW', 'NAI', 'NEB']:
+                    for mo_type in self._mutator_list:
                         # gc.collect()
                         # mutant_model = model_utils.model_copy(self._model, '')
                         # this will take the model and turn it into one mutant based on the neuron
