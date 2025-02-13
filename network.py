@@ -779,6 +779,7 @@ class Dataset:
         return np.concatenate(images), np.concatenate(labels)
 
 if __name__ == '__main__':
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     parser = ArgumentParser()
     parser.add_argument('-m',
                         '--model',
@@ -791,6 +792,7 @@ if __name__ == '__main__':
                         help='Potential values: \'mnist\', \'fmnist\', \'kmnist\', \'emnist\', \'cifar10\', \'cifar100\'',
                         required=True)
     args = parser.parse_args()
+
 
     data = Dataset(args.dataset)
     network = Network(args.model_type, data)

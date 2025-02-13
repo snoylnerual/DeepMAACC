@@ -130,15 +130,15 @@ if __name__ == "__main__":
                 for model_n in model_l:
                     dmaacc_run.load_model('examples/' + ds + '/' + model_n)
                     model_current = dmaacc_run.get_model()
-                    for fraction in selection_fractions:
-                        dmaacc_run.set_selection_fraction(fraction)
-                        if arch_type == 'one_by_one':
-                            df_clusters = dmaacc_run.run_vanilla() # what changed is that we change the selection fraction
-                            csvfile = 'exp_random_mutation_selection.csv'
-                            if os.path.isfile(csvfile):
-                                df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
-                            else:
-                                df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
+                    #for fraction in selection_fractions:
+                    dmaacc_run.set_selection_fraction(selection_fractions) # fraction -> selection_fractions
+                    if arch_type == 'one_by_one':
+                        df_clusters = dmaacc_run.run_random_mutation_selection() # what changed is that we change the selection fraction
+                        csvfile = 'exp_random_mutation_selection.csv'
+                        if os.path.isfile(csvfile):
+                            df_clusters.to_csv(csvfile, mode='a', header=False, index=False)
+                        else:
+                            df_clusters.to_csv(csvfile, mode='w', header=True, index=False)
 
     # ========================================================================================================
     elif run_type == 'boundary_sampling':

@@ -72,7 +72,7 @@ class OBO:
         elif mo_type == 'NS':
             # this should just switch the weights in between two neurons in one layer
             if layer_name == 'Conv2D':
-                random_neuron_index = np.random.randint(0, len(weights[0][neuron_index]))  # return a number between start and end (both included)
+                random_neuron_index = np.random.randint(0, len(weights[0][0])-1)  # return a number between start and end (both included)
                 temp_weights = copy.deepcopy(weights[0][:, :, :, neuron_index])
                 temp_bias = weights[1][neuron_index]
                 weights[0][:, :, :, neuron_index] = weights[0][:, :, :, random_neuron_index]
@@ -80,7 +80,7 @@ class OBO:
                 weights[1][neuron_index] = weights[1][random_neuron_index]
                 weights[1][random_neuron_index] = temp_bias
             elif layer_name == 'Dense':
-                random_neuron_index = np.random.randint(0,len(weights[0][neuron_index])) # return a number between start and end (both included)
+                random_neuron_index = np.random.randint(0,len(weights[0][0])-1) # return a number between start and end (both included)
                 temp_weights = copy.deepcopy(weights[0][:, neuron_index])
                 temp_bias = weights[1][neuron_index]
                 weights[0][:, neuron_index] = weights[0][:, random_neuron_index]
